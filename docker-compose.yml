@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -62,6 +60,25 @@ services:
     networks:
       - hinos_network
     restart: unless-stopped
+
+  hinos_mcp:
+    build:
+      context: ./hinos_mcp
+      dockerfile: Dockerfile
+    container_name: hinos_mcp
+    environment:
+      - NODE_ENV=production
+      - API_BASE_URL=http://hinos_api:8080
+      - MCP_SERVER_NAME=hinos_mcp
+      - MCP_SERVER_VERSION=1.0.0
+    depends_on:
+      hinos_api:
+        condition: service_healthy
+    networks:
+      - hinos_network
+    restart: unless-stopped
+    # MCP servers communicate via stdio, so no ports are exposed
+    # This service can be used by MCP clients that connect to the container
 
 networks:
   hinos_network:

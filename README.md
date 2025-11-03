@@ -27,6 +27,8 @@ Frontend React com Vite para visualização e busca de hinários.
 Servidor MCP (Model Context Protocol) em TypeScript para integração da API com LLMs.
 - [Documentação completa](./docs/hinos_mcp.md)
 
+**Nota:** O serviço MCP está configurado no Docker Compose e se comunica com a API via rede interna Docker. Clientes MCP podem se conectar ao container para usar o servidor.
+
 ## Executando com Docker Compose
 
 A forma mais simples de executar todo o sistema é usando Docker Compose.
@@ -52,6 +54,7 @@ docker-compose down
 - Frontend: http://localhost:3000
 - API: http://localhost:5000
 - Swagger: http://localhost:5000/swagger
+- MCP Server: hinos_mcp (comunicação via stdio)
 
 ## Executando Localmente (Desenvolvimento)
 

@@ -1,22 +1,27 @@
-import { useState, useEffect } from 'react';
-import { Search } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Search, MessageSquarePlus, Loader2, AlertCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
+import { Button } from './ui/button';
 import { CategoryFilter, Hymn } from '../types/hymn';
 import { ThemeToggle } from './ThemeToggle';
+import { useAuth } from '../contexts/AuthContext';
 import { getAllHymns, searchHymns } from '../services/api';
 
 interface SearchPageProps {
   onSelectHymn: (hymnId: string) => void;
+  onOpenChat: () => void;
 }
 
-export function SearchPage({ onSelectHymn }: SearchPageProps) {
+export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState<CategoryFilter>('todos');
   const [hymns, setHymns] = useState<Hymn[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated } = useAuth();
 
   const categories = [
     { id: 'todos' as CategoryFilter, label: 'Todos' },
@@ -26,38 +31,53 @@ export function SearchPage({ onSelectHymn }: SearchPageProps) {
     { id: 'novos' as CategoryFilter, label: 'Novos' }
   ];
 
-  // Carregar hinos ao montar o componente e quando o filtro ou busca mudar
+  // Debounce do termo de busca
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500); // 500ms de delay
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Carregar hinos da API
   useEffect(() => {
     const loadHymns = async () => {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        setError(null);
-        
-        let result;
-        if (searchTerm.trim()) {
-          result = await searchHymns(searchTerm.trim());
+        let results: Hymn[];
+
+        if (debouncedSearchTerm.trim()) {
+          // Buscar por termo
+          results = await searchHymns(debouncedSearchTerm);
         } else {
-          result = await getAllHymns(activeFilter !== 'todos' ? activeFilter : undefined);
+          // Carregar todos os hinos (com filtro de categoria se aplicável)
+          const categoryFilter = activeFilter !== 'todos' ? activeFilter : undefined;
+          results = await getAllHymns(categoryFilter);
         }
-        
-        // Aplicar filtro de categoria se houver busca
-        if (searchTerm.trim() && activeFilter !== 'todos') {
-          result = result.filter(hymn => hymn.category === activeFilter);
-        }
-        
-        setHymns(result);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar hinos');
+
+        setHymns(results);
+      } catch (err: any) {
         console.error('Erro ao carregar hinos:', err);
+        setError(err.message || 'Erro ao carregar hinos. Verifique sua conexão.');
+        setHymns([]);
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     loadHymns();
-  }, [searchTerm, activeFilter]);
+  }, [debouncedSearchTerm, activeFilter]);
 
-  const filteredHymns = hymns;
+  // Aplicar filtro de categoria localmente (se não usou na busca)
+  const filteredHymns = useMemo(() => {
+    if (activeFilter === 'todos') {
+      return hymns;
+    }
+    return hymns.filter(hymn => hymn.category === activeFilter);
+  }, [hymns, activeFilter]);
 
   // Auto-focus no campo de busca
   useEffect(() => {
@@ -97,11 +117,46 @@ export function SearchPage({ onSelectHymn }: SearchPageProps) {
               <Search className="w-8 h-8 text-foreground/70" />
               <h1 className="text-foreground">Hinário Online</h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={onOpenChat}
+                variant="outline"
+                className="gap-2"
+              >
+                <MessageSquarePlus className="w-4 h-4" />
+                <span className="hidden sm:inline">
+                  {isAuthenticated ? 'Chat IA' : 'Entrar'}
+                </span>
+              </Button>
+              <ThemeToggle />
+            </div>
           </div>
           <p className="text-muted-foreground">
             Encontre hinos por número ou palavra-chave
           </p>
+
+          {/* CTA para Chat IA */}
+          {!isAuthenticated && (
+            <div className="mt-6 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="text-foreground mb-1">
+                    💬 Cadastre novos hinos com IA
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Acesse o chat inteligente para solicitar o cadastro de hinos de forma simples e rápida
+                  </p>
+                </div>
+                <Button
+                  onClick={onOpenChat}
+                  className="gap-2 shrink-0"
+                >
+                  <MessageSquarePlus className="w-4 h-4" />
+                  Acessar Chat
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search Input */}
@@ -154,19 +209,38 @@ export function SearchPage({ onSelectHymn }: SearchPageProps) {
 
         {/* Results */}
         <div>
-          {loading && (
-            <div className="text-center py-12">
-              <div className="text-muted-foreground">Carregando hinos...</div>
-            </div>
-          )}
-
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
-              <p className="text-red-800 dark:text-red-200">Erro: {error}</p>
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-destructive font-medium mb-1">Erro ao carregar hinos</p>
+                  <p className="text-sm text-destructive/80">{error}</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                    onClick={() => {
+                      setError(null);
+                      setSearchTerm('');
+                      setDebouncedSearchTerm('');
+                    }}
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
 
-          {!loading && !error && (
+          {isLoading && (
+            <div className="text-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Carregando hinos...</p>
+            </div>
+          )}
+
+          {!isLoading && !error && (
             <>
               {searchTerm && (
                 <div className="mb-4 text-muted-foreground">
@@ -176,31 +250,43 @@ export function SearchPage({ onSelectHymn }: SearchPageProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredHymns.map(hymn => (
-              <Card
-                key={hymn.id}
-                onClick={() => onSelectHymn(hymn.id)}
-                className="p-4 hover:shadow-lg transition-all cursor-pointer hover:border-primary/50 bg-card"
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="text-primary shrink-0">
-                    #{hymn.number}
-                  </div>
-                  <Badge className={`${getCategoryBadgeColor(hymn.category)} shrink-0`}>
-                    {getCategoryLabel(hymn.category)}
-                  </Badge>
-                </div>
-                <h3 className="text-foreground mb-1">{hymn.title}</h3>
-                <p className="text-muted-foreground text-sm">{hymn.hymnBook}</p>
-                {hymn.verses[0] && (
-                  <p className="text-muted-foreground text-sm mt-2 line-clamp-2">
-                    {hymn.verses[0].lines[0]}...
-                  </p>
-                )}
-              </Card>
+                  <Card
+                    key={hymn.id}
+                    onClick={() => onSelectHymn(hymn.id)}
+                    className="p-4 hover:shadow-lg transition-all cursor-pointer hover:border-primary/50 bg-card"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="text-primary shrink-0">
+                        #{hymn.number}
+                      </div>
+                      <Badge className={`${getCategoryBadgeColor(hymn.category)} shrink-0`}>
+                        {getCategoryLabel(hymn.category)}
+                      </Badge>
+                    </div>
+                    <h3 className="text-foreground mb-1">{hymn.title}</h3>
+                    <p className="text-muted-foreground text-sm">{hymn.hymnBook}</p>
+                    {hymn.verses[0] && (
+                      <p className="text-muted-foreground text-sm mt-2 line-clamp-2">
+                        {hymn.verses[0].lines[0]}...
+                      </p>
+                    )}
+                  </Card>
                 ))}
               </div>
 
-              {filteredHymns.length === 0 && searchTerm && (
+              {filteredHymns.length === 0 && !searchTerm && !isLoading && (
+                <div className="text-center py-12">
+                  <div className="text-muted-foreground mb-2 text-4xl">🎵</div>
+                  <p className="text-foreground">
+                    Digite um termo para buscar hinos
+                  </p>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    Ou selecione uma categoria acima
+                  </p>
+                </div>
+              )}
+
+              {filteredHymns.length === 0 && searchTerm && !isLoading && (
                 <div className="text-center py-12">
                   <div className="text-muted-foreground mb-2 text-4xl">🔍</div>
                   <p className="text-foreground">

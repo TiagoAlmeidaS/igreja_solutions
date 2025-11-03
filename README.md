@@ -8,6 +8,7 @@ Projetos agrupados para igreja para soluções específicas e mínimas
 igreja_solutions/
 ├── hinos_api/          # API .NET 9 para gerenciamento de hinários
 ├── hinos_web/          # Frontend React para visualização de hinários
+├── hinos_mcp/          # Servidor MCP para integração com LLMs
 ├── docs/               # Documentação dos projetos
 └── docker-compose.yml  # Orquestração Docker dos serviços
 ```
@@ -21,6 +22,10 @@ API REST desenvolvida em .NET 9 com Minimal API para CRUD de hinos.
 ### hinos_web
 Frontend React com Vite para visualização e busca de hinários.
 - [Documentação completa](./docs/hinos_web.md)
+
+### hinos_mcp
+Servidor MCP (Model Context Protocol) em TypeScript para integração da API com LLMs.
+- [Documentação completa](./docs/hinos_mcp.md)
 
 ## Executando com Docker Compose
 
@@ -98,6 +103,7 @@ A API utiliza SQLite por padrão. O banco de dados é criado automaticamente na 
 
 - [API - hinos_api](./docs/hinos_api.md)
 - [Frontend - hinos_web](./docs/hinos_web.md)
+- [Servidor MCP - hinos_mcp](./docs/hinos_mcp.md)
 
 ## Desenvolvimento
 

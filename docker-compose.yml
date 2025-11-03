@@ -1,6 +1,26 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hinos_postgres
+    environment:
+      - POSTGRES_DB=hinos_db
+      - POSTGRES_USER=hinos_user
+      - POSTGRES_PASSWORD=hinos_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - hinos_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hinos_user -d hinos_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   hinos_api:
     build:
       context: ./hinos_api
@@ -11,10 +31,15 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=hinos_db;Username=hinos_user;Password=hinos_password
+      - SQLiteConnectionString=Data Source=/app/data/hymns.db;Cache=Shared
     volumes:
       - ./hinos_api/data:/app/data
     networks:
       - hinos_network
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
       interval: 30s
@@ -44,4 +69,6 @@ networks:
 
 volumes:
   hinos_data:
+    driver: local
+  postgres_data:
     driver: local

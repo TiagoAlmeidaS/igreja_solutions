@@ -10,6 +10,7 @@ API REST desenvolvida em .NET 9 com Minimal API para gerenciamento de hinários.
 - **Entity Framework Core** - ORM para acesso a dados
 - **SQLite** - Banco de dados (configurável para SQL Server/PostgreSQL)
 - **Swagger/OpenAPI** - Documentação interativa da API
+- **JWT** - Autenticação via tokens JWT
 - **Minimal API** - Abordagem simplificada de construção de APIs
 
 ## Estrutura do Projeto
@@ -43,6 +44,41 @@ hinos_api/
 - `HymnId` (int): ID do hino pai
 
 ## Endpoints da API
+
+### POST /api/auth/login
+Realiza autenticação na API usando email e senha.
+
+**Body:** LoginRequestDto
+```json
+{
+  "email": "admin@hinario.com",
+  "password": "admin123"
+}
+```
+
+**Resposta:**
+
+- `200 OK` - Login realizado com sucesso
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user": {
+    "id": "1",
+    "name": "Administrador",
+    "email": "admin@hinario.com"
+  }
+}
+```
+
+- `400 Bad Request` - Email ou senha não fornecidos
+- `401 Unauthorized` - Credenciais inválidas
+```json
+{
+  "message": "Credenciais inválidas"
+}
+```
+
+**Nota:** O token JWT retornado deve ser incluído no header `Authorization: Bearer {token}` em requisições protegidas.
 
 ### GET /api/hymns
 Lista todos os hinos com filtros opcionais.
@@ -132,6 +168,10 @@ Health check da API.
 
 - `ASPNETCORE_ENVIRONMENT`: Ambiente de execução (Development, Production)
 - `ConnectionStrings__DefaultConnection`: String de conexão do banco de dados
+- `Auth__Email`: Email do usuário administrador (override do appsettings.json)
+- `Auth__Password`: Senha do usuário administrador (override do appsettings.json)
+- `Auth__JwtSecret`: Chave secreta para assinatura JWT (override do appsettings.json)
+- `Auth__JwtExpirationHours`: Horas de expiração do token JWT (override do appsettings.json)
 
 ### appsettings.json
 
@@ -139,9 +179,20 @@ Health check da API.
 {
   "ConnectionStrings": {
     "DefaultConnection": "Data Source=data/hymns.db"
+  },
+  "Auth": {
+    "Email": "admin@hinario.com",
+    "Password": "admin123",
+    "JwtSecret": "minha-chave-secreta-super-segura-com-pelo-menos-32-caracteres-para-jwt",
+    "JwtExpirationHours": 24
   }
 }
 ```
+
+**Importante:** 
+- Em produção, configure as credenciais via variáveis de ambiente ao invés de deixar no appsettings.json
+- O `JwtSecret` deve ter pelo menos 32 caracteres para garantir segurança
+- A senha é armazenada em texto plano (conforme configuração solicitada)
 
 ## Executando Localmente
 
@@ -207,15 +258,44 @@ Logging configurado via ASP.NET Core logging padrão. Níveis:
 - Development: Information
 - Production: Warning
 
+## Autenticação
+
+A API utiliza autenticação baseada em JWT (JSON Web Tokens). 
+
+### Configuração de Credenciais
+
+As credenciais são configuradas via `appsettings.json` ou variáveis de ambiente:
+- Email e senha do administrador são validados no login
+- Um token JWT é gerado com expiração configurável (padrão: 24 horas)
+- O token contém claims: email, id e nome do usuário
+
+### Uso do Token
+
+Após realizar login, inclua o token no header das requisições:
+```
+Authorization: Bearer {token}
+```
+
+### Endpoint Público
+
+O endpoint `/api/auth/login` é público (não requer autenticação). Todos os outros endpoints podem ser protegidos no futuro.
+
 ## Segurança
 
 - CORS configurado para origens específicas
 - Validação de entrada nos endpoints
 - Sanitização de dados
+- Autenticação JWT implementada
+- Credenciais configuráveis via variáveis de ambiente
+
+**Recomendações:**
+- Em produção, usar variáveis de ambiente para credenciais sensíveis
+- Considerar hash de senhas para maior segurança
+- Configurar JWT Secret forte (mínimo 32 caracteres)
+- Revisar políticas de expiração de tokens
 
 ## Melhorias Futuras
 
-- Autenticação e autorização (JWT)
 - Rate limiting
 - Cache de respostas
 - Paginação nos endpoints de listagem

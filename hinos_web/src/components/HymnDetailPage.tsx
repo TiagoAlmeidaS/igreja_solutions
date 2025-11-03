@@ -1,4 +1,4 @@
-import { ArrowLeft, Copy, Download, Check } from 'lucide-react';
+import { ArrowLeft, Copy, Download, Check, Loader2, AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -14,35 +14,37 @@ interface HymnDetailPageProps {
 export function HymnDetailPage({ hymnId, onBack }: HymnDetailPageProps) {
   const [copiedPlain, setCopiedPlain] = useState(false);
   const [hymn, setHymn] = useState<Hymn | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadHymn = async () => {
+      setIsLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        setError(null);
         const loadedHymn = await getHymnById(hymnId);
-        if (!loadedHymn) {
-          setError('Hino não encontrado');
-        } else {
+        if (loadedHymn) {
           setHymn(loadedHymn);
+        } else {
+          setError('Hino não encontrado');
         }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Erro ao carregar hino');
+      } catch (err: any) {
         console.error('Erro ao carregar hino:', err);
+        setError(err.message || 'Erro ao carregar hino. Verifique sua conexão.');
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
 
     loadHymn();
   }, [hymnId]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
           <p className="text-muted-foreground">Carregando hino...</p>
         </div>
       </div>
@@ -52,8 +54,14 @@ export function HymnDetailPage({ hymnId, onBack }: HymnDetailPageProps) {
   if (error || !hymn) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">{error || 'Hino não encontrado'}</p>
+        <div className="max-w-md mx-auto px-4 text-center">
+          <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+          <h2 className="text-foreground text-xl font-semibold mb-2">
+            {error ? 'Erro ao carregar hino' : 'Hino não encontrado'}
+          </h2>
+          <p className="text-muted-foreground mb-6">
+            {error || 'O hino solicitado não foi encontrado.'}
+          </p>
           <Button onClick={onBack}>Voltar</Button>
         </div>
       </div>

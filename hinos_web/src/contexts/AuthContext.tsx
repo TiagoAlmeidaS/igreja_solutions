@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { login as apiLogin, logout as apiLogout, LoginResponse } from '../services/api';
 
 interface User {
   id: string;
@@ -18,33 +19,45 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
-  // Verificar se há usuário salvo no localStorage
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+    const savedToken = localStorage.getItem('auth_token');
+    
+    if (savedUser && savedToken) {
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch (error) {
+        console.error('Erro ao recuperar usuário do localStorage:', error);
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth_token');
+      }
     }
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Simulação de login - em produção, isso seria uma chamada à API
-    // Credenciais de exemplo: admin@hinario.com / admin123
-    if (email === 'admin@hinario.com' && password === 'admin123') {
+    try {
+      const response: LoginResponse = await apiLogin({ email, password });
+      
       const userData: User = {
-        id: '1',
-        name: 'Administrador',
-        email: email
+        id: response.user.id,
+        name: response.user.name,
+        email: response.user.email,
       };
+      
       setUser(userData);
       localStorage.setItem('user', JSON.stringify(userData));
+      
       return true;
+    } catch (error: any) {
+      console.error('Erro ao fazer login:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    apiLogout();
   };
 
   return (

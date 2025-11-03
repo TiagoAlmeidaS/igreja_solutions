@@ -6,6 +6,20 @@ export interface ApiError {
   message: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
 export interface CreateHymnRequest {
   number: string;
   title: string;
@@ -55,6 +69,53 @@ async function handleResponse<T>(response: Response): Promise<T> {
   }
   
   return response.json();
+}
+
+// Helper para obter token do localStorage
+function getAuthToken(): string | null {
+  return localStorage.getItem('auth_token');
+}
+
+// Helper para adicionar token de autenticação aos headers
+function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return headers;
+}
+
+// POST /api/auth/login - Login de autenticação
+export async function login(credentials: LoginRequest): Promise<LoginResponse> {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(credentials),
+    });
+    
+    const data = await handleResponse<LoginResponse>(response);
+    
+    // Armazenar token no localStorage
+    localStorage.setItem('auth_token', data.token);
+    
+    return data;
+  } catch (error) {
+    console.error('Erro ao fazer login:', error);
+    throw error;
+  }
+}
+
+// Logout - Remove token do localStorage
+export function logout(): void {
+  localStorage.removeItem('auth_token');
 }
 
 function mapApiHymnToHymn(apiHymn: ApiHymn): Hymn {
@@ -127,9 +188,7 @@ export async function createHymn(hymn: CreateHymnRequest): Promise<Hymn> {
   try {
     const response = await fetch(`${API_URL}/api/hymns`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(hymn),
     });
     
@@ -146,9 +205,7 @@ export async function updateHymn(id: string, hymn: UpdateHymnRequest): Promise<H
   try {
     const response = await fetch(`${API_URL}/api/hymns/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: getAuthHeaders(),
       body: JSON.stringify(hymn),
     });
     
@@ -165,6 +222,7 @@ export async function deleteHymn(id: string): Promise<void> {
   try {
     const response = await fetch(`${API_URL}/api/hymns/${id}`, {
       method: 'DELETE',
+      headers: getAuthHeaders(),
     });
     
     await handleResponse<void>(response);

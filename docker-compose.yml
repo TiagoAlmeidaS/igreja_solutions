@@ -19,64 +19,64 @@ services:
       retries: 5
     restart: unless-stopped
 
-  hinos_api:
-    build:
-      context: ./hinos_api
-      dockerfile: Dockerfile
-    container_name: hinos_api
-    ports:
-      - "5000:8080"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=hinos_db;Username=hinos_user;Password=hinos_password
-      - SQLiteConnectionString=Data Source=/app/data/hymns.db;Cache=Shared
-    volumes:
-      - ./hinos_api/data:/app/data
-    networks:
-      - hinos_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    restart: unless-stopped
+  # hinos_api:
+  #   build:
+  #     context: ./hinos_api
+  #     dockerfile: Dockerfile
+  #   container_name: hinos_api
+  #   ports:
+  #     - "5000:8080"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Production
+  #     - ASPNETCORE_URLS=http://+:8080
+  #     - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=hinos_db;Username=hinos_user;Password=hinos_password
+  #     - SQLiteConnectionString=Data Source=/app/data/hymns.db;Cache=Shared
+  #   volumes:
+  #     - ./hinos_api/data:/app/data
+  #   networks:
+  #     - hinos_network
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+  #   restart: unless-stopped
 
-  hinos_web:
-    build:
-      context: ./hinos_web
-      dockerfile: Dockerfile
-      args:
-        - VITE_API_URL=http://localhost:5000
-    container_name: hinos_web
-    ports:
-      - "3000:80"
-    depends_on:
-      - hinos_api
-    networks:
-      - hinos_network
-    restart: unless-stopped
+  # hinos_web:
+  #   build:
+  #     context: ./hinos_web
+  #     dockerfile: Dockerfile
+  #     args:
+  #       - VITE_API_URL=http://localhost:5000
+  #   container_name: hinos_web
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - hinos_api
+  #   networks:
+  #     - hinos_network
+  #   restart: unless-stopped
 
-  hinos_mcp:
-    build:
-      context: ./hinos_mcp
-      dockerfile: Dockerfile
-    container_name: hinos_mcp
-    environment:
-      - NODE_ENV=production
-      - API_BASE_URL=http://hinos_api:8080
-      - MCP_SERVER_NAME=hinos_mcp
-      - MCP_SERVER_VERSION=1.0.0
-    depends_on:
-      hinos_api:
-        condition: service_healthy
-    networks:
-      - hinos_network
-    restart: unless-stopped
+  # hinos_mcp:
+  #   build:
+  #     context: ./hinos_mcp
+  #     dockerfile: Dockerfile
+  #   container_name: hinos_mcp
+  #   environment:
+  #     - NODE_ENV=production
+  #     - API_BASE_URL=http://hinos_api:8080
+  #     - MCP_SERVER_NAME=hinos_mcp
+  #     - MCP_SERVER_VERSION=1.0.0
+  #   depends_on:
+  #     hinos_api:
+  #       condition: service_healthy
+  #   networks:
+  #     - hinos_network
+  #   restart: unless-stopped
     # MCP servers communicate via stdio, so no ports are exposed
     # This service can be used by MCP clients that connect to the container
 

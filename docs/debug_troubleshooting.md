@@ -1,5 +1,47 @@
 # Troubleshooting do Debug no VS Code
 
+## Problema: Arquivo Bloqueado Durante Build
+
+### Erro Comum
+```
+Error MSB3027: não foi possível copiar "apphost.exe" para "hinos_api.exe". 
+The process cannot access the file because it is being used by another process.
+O arquivo é bloqueado por: "hinos_api (21604), hinos_api (36596)"
+```
+
+### Causa
+Processos `hinos_api.exe` ainda em execução bloqueiam o arquivo durante o build, impedindo que o MSBuild copie o novo executável.
+
+### Solução Implementada
+1. **Task `kill-processes`**: Mata todos os processos `hinos_api.exe` antes do build
+2. **Task `kill-and-build`**: Combina kill + build em uma única task
+3. **PreLaunchTask atualizado**: O launch.json agora usa `kill-and-build` automaticamente
+
+### Como Funciona
+Quando você pressiona `F5` para iniciar o debug:
+1. A task `kill-and-build` é executada automaticamente
+2. Primeiro mata qualquer processo `hinos_api.exe` em execução
+3. Depois executa o build normalmente
+4. Finalmente inicia o debug
+
+### Se Ainda Tiver Problemas
+
+**Manualmente (PowerShell):**
+```powershell
+# Matar processos manualmente
+Get-Process | Where-Object {$_.ProcessName -eq "hinos_api"} | Stop-Process -Force
+
+# Ou via taskkill
+taskkill /F /IM hinos_api.exe
+```
+
+**Verificar processos em execução:**
+```powershell
+Get-Process | Where-Object {$_.ProcessName -eq "hinos_api"}
+```
+
+---
+
 ## Problemas Identificados e Soluções
 
 ### 1. **Build Task usando projeto ao invés de solution**

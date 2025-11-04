@@ -98,19 +98,41 @@ public class HymnQueryService
         // IDs positivos são do PostgreSQL
         if (id > 0)
         {
-            var hymn = await _dbContext.Hymns
-                .Include(h => h.Verses)
-                .FirstOrDefaultAsync(h => h.Id == id);
-
-            if (hymn != null)
+            try
             {
-                return HymnService.MapToDto(hymn);
+                var hymn = await _dbContext.Hymns
+                    .Include(h => h.Verses)
+                    .FirstOrDefaultAsync(h => h.Id == id);
+
+                if (hymn != null)
+                {
+                    return HymnService.MapToDto(hymn);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Erro ao buscar hino {Id} no PostgreSQL", id);
             }
         }
 
         // IDs negativos são do SQLite (usar valor absoluto como referência)
-        // Mas como não temos mapeamento direto, retornamos null
-        // Para SQLite, usar GetByNumberAsync
+        if (id < 0)
+        {
+            try
+            {
+                var sqliteId = Math.Abs(id);
+                var hymn = await _sqliteService.GetByIdAsync(sqliteId);
+                if (hymn != null)
+                {
+                    return hymn;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Erro ao buscar hino {Id} no SQLite", id);
+            }
+        }
+
         return null;
     }
 

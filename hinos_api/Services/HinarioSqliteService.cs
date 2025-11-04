@@ -111,6 +111,42 @@ public class HinarioSqliteService
         }
     }
 
+    public async Task<HymnResponseDto?> GetByIdAsync(int id)
+    {
+        if (!IsSqliteAvailable())
+        {
+            return null;
+        }
+
+        try
+        {
+            using var connection = new SqliteConnection(GetConnectionString());
+            await connection.OpenAsync();
+
+            var command = connection.CreateCommand();
+            command.CommandText = @"
+                SELECT Z_PK, ZNUMERO, ZTITULO, ZLETRA 
+                FROM ZENTITY 
+                WHERE Z_PK = @id
+                LIMIT 1";
+            
+            command.Parameters.AddWithValue("@id", id);
+
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return MapRowToHymnDto(reader);
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Erro ao buscar hino com ID {Id} do SQLite", id);
+            return null;
+        }
+    }
+
     public async Task<List<HymnResponseDto>> SearchAsync(string term)
     {
         if (!IsSqliteAvailable())
@@ -296,9 +332,47 @@ public class HinarioSqliteService
                 continue;
             }
 
-            // Detectar início de verso (V1, V2, R, C, etc.)
-            var verseMatch = Regex.Match(trimmedLine, @"^(\d+|[VRCP])\s*[\.\-]?\s*(.*)$", RegexOptions.IgnoreCase);
-            if (verseMatch.Success)
+            // Detectar início de verso de forma mais conservadora para evitar perda de texto
+            // Padrões válidos: 
+            // - Número seguido de espaço/pontuação (ex: "1 ", "1.", "1-")
+            // - V seguido de número (ex: "V1", "v1")
+            // - R, C ou P sozinhos seguidos de espaço/pontuação (ex: "R ", "C.", "P-")
+            bool isVerseMarker = false;
+            string verseTypeStr = "";
+            string remainingText = trimmedLine;
+            
+            // Padrão 1: Número no início seguido de espaço, ponto, hífen ou dois pontos
+            var numberMatch = Regex.Match(trimmedLine, @"^(\d+)(\s|\.|-|:)(.*)$");
+            if (numberMatch.Success)
+            {
+                verseTypeStr = $"V{numberMatch.Groups[1].Value}";
+                remainingText = numberMatch.Groups[3].Value.Trim();
+                isVerseMarker = true;
+            }
+            // Padrão 2: V seguido de número (ex: "V1", "v1")
+            else if (Regex.IsMatch(trimmedLine, @"^[Vv]\d+", RegexOptions.IgnoreCase))
+            {
+                var vMatch = Regex.Match(trimmedLine, @"^[Vv](\d+)(?:\s*[\.\-:]?\s*)(.*)$", RegexOptions.IgnoreCase);
+                if (vMatch.Success)
+                {
+                    verseTypeStr = $"V{vMatch.Groups[1].Value}";
+                    remainingText = vMatch.Groups[2].Value.Trim();
+                    isVerseMarker = true;
+                }
+            }
+            // Padrão 3: R, C ou P sozinhos seguidos de espaço, ponto, hífen ou dois pontos (não parte de palavra)
+            else if (Regex.IsMatch(trimmedLine, @"^[RCP](?:\s|\.|-|:|\s*$)", RegexOptions.IgnoreCase))
+            {
+                var markerMatch = Regex.Match(trimmedLine, @"^([RCP])(?:\s|\.|-|:|\s*)(.*)$", RegexOptions.IgnoreCase);
+                if (markerMatch.Success)
+                {
+                    verseTypeStr = markerMatch.Groups[1].Value.ToUpper();
+                    remainingText = markerMatch.Groups[2].Value.Trim();
+                    isVerseMarker = true;
+                }
+            }
+            
+            if (isVerseMarker)
             {
                 // Salvar verso anterior se existir
                 if (currentVerse != null && currentLines.Count > 0)
@@ -308,13 +382,12 @@ public class HinarioSqliteService
                 }
 
                 // Criar novo verso
-                var verseType = DetermineVerseType(verseMatch.Groups[1].Value);
-                var verseText = verseMatch.Groups[2].Value.Trim();
+                var verseType = DetermineVerseType(verseTypeStr);
                 
                 currentVerse = new VerseDto { Type = verseType };
-                currentLines = string.IsNullOrWhiteSpace(verseText) 
+                currentLines = string.IsNullOrWhiteSpace(remainingText) 
                     ? new List<string>() 
-                    : new List<string> { verseText };
+                    : new List<string> { remainingText };
             }
             else
             {

@@ -16,6 +16,7 @@ builder.Services.AddJwtConfiguration(builder.Configuration);
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<HinarioSqliteService>();
 builder.Services.AddScoped<HymnQueryService>();
+builder.Services.AddScoped<HymnFormatService>();
 
 var app = builder.Build();
 

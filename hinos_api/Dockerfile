@@ -3,12 +3,13 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # Copy csproj and restore dependencies
-COPY *.csproj ./
-RUN dotnet restore
+COPY hinos_api.csproj ./
+RUN dotnet restore hinos_api.csproj
 
-# Copy everything else and build
+# Copy everything else (excluding Tests folder)
 COPY . ./
-RUN dotnet publish -c Release -o /app/publish --no-restore
+# Exclude Tests folder from build
+RUN dotnet publish hinos_api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime

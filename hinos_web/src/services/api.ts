@@ -60,6 +60,17 @@ async function handleResponse<T>(response: Response): Promise<T> {
       // Se não conseguir parsear JSON, usar mensagem padrão
     }
     
+    // Tratamento específico para erros conhecidos
+    if (response.status === 409) {
+      throw new Error('Já existe um hino com este número');
+    }
+    if (response.status === 404) {
+      throw new Error('Hino não encontrado');
+    }
+    if (response.status === 401) {
+      throw new Error('Não autorizado. Faça login novamente.');
+    }
+    
     throw new Error(errorMessage);
   }
   
@@ -151,10 +162,21 @@ export async function getAllHymns(
   }
 }
 
+// Helper para converter string ID para número (suporta IDs negativos do SQLite)
+function parseHymnId(id: string): number {
+  const parsed = parseInt(id, 10);
+  if (isNaN(parsed)) {
+    throw new Error(`ID inválido: ${id}`);
+  }
+  return parsed;
+}
+
 // GET /api/hymns/{id} - Busca hino por ID
 export async function getHymnById(id: string): Promise<Hymn | null> {
   try {
-    const response = await fetch(`${API_URL}/api/hymns/${id}`);
+    // Converter string para int (API espera int, incluindo negativos para SQLite)
+    const hymnId = parseHymnId(id);
+    const response = await fetch(`${API_URL}/api/hymns/${hymnId}`);
     const apiHymn = await handleResponse<ApiHymn>(response);
     return mapApiHymnToHymn(apiHymn);
   } catch (error: any) {
@@ -168,12 +190,16 @@ export async function getHymnById(id: string): Promise<Hymn | null> {
 
 // GET /api/hymns/search?term={term} - Busca por termo
 export async function searchHymns(term: string): Promise<Hymn[]> {
-  if (!term.trim()) {
+  const trimmedTerm = term.trim();
+  
+  // Se termo está vazio, usar getAllHymns em vez do endpoint de busca
+  // (o endpoint /api/hymns/search requer term obrigatório)
+  if (!trimmedTerm) {
     return getAllHymns();
   }
 
   try {
-    const params = new URLSearchParams({ term: term.trim() });
+    const params = new URLSearchParams({ term: trimmedTerm });
     const response = await fetch(`${API_URL}/api/hymns/search?${params.toString()}`);
     const apiHymns = await handleResponse<ApiHymn[]>(response);
     return apiHymns.map(mapApiHymnToHymn);
@@ -203,7 +229,13 @@ export async function createHymn(hymn: CreateHymnRequest): Promise<Hymn> {
 // PUT /api/hymns/{id} - Atualiza hino existente
 export async function updateHymn(id: string, hymn: UpdateHymnRequest): Promise<Hymn> {
   try {
-    const response = await fetch(`${API_URL}/api/hymns/${id}`, {
+    // Verificar se é ID negativo (SQLite - somente leitura)
+    const hymnId = parseHymnId(id);
+    if (hymnId < 0) {
+      throw new Error('Hinos do hinário base são somente leitura e não podem ser editados');
+    }
+    
+    const response = await fetch(`${API_URL}/api/hymns/${hymnId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(hymn),
@@ -220,7 +252,13 @@ export async function updateHymn(id: string, hymn: UpdateHymnRequest): Promise<H
 // DELETE /api/hymns/{id} - Remove hino
 export async function deleteHymn(id: string): Promise<void> {
   try {
-    const response = await fetch(`${API_URL}/api/hymns/${id}`, {
+    // Verificar se é ID negativo (SQLite - somente leitura)
+    const hymnId = parseHymnId(id);
+    if (hymnId < 0) {
+      throw new Error('Hinos do hinário base são somente leitura e não podem ser removidos');
+    }
+    
+    const response = await fetch(`${API_URL}/api/hymns/${hymnId}`, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -228,6 +266,74 @@ export async function deleteHymn(id: string): Promise<void> {
     await handleResponse<void>(response);
   } catch (error) {
     console.error('Erro ao deletar hino:', error);
+    throw error;
+  }
+}
+
+// Interface para retornar blob e nome do arquivo
+export interface DownloadResult {
+  blob: Blob;
+  fileName: string;
+}
+
+// Helper para extrair nome do arquivo do header Content-Disposition
+function extractFileNameFromHeaders(headers: Headers, defaultName: string): string {
+  const contentDisposition = headers.get('Content-Disposition');
+  if (contentDisposition) {
+    const fileNameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    if (fileNameMatch && fileNameMatch[1]) {
+      return fileNameMatch[1].replace(/['"]/g, '');
+    }
+  }
+  return defaultName;
+}
+
+// GET /api/hymns/{id}/download/plain - Download hino em formato texto plano
+export async function downloadHymnPlain(id: string): Promise<DownloadResult> {
+  try {
+    const hymnId = parseHymnId(id);
+    const response = await fetch(`${API_URL}/api/hymns/${hymnId}/download/plain`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Hino não encontrado');
+      }
+      throw new Error(`Erro ao baixar hino: ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    const fileName = extractFileNameFromHeaders(response.headers, 'hino-plain.txt');
+    
+    return { blob, fileName };
+  } catch (error) {
+    console.error('Erro ao baixar hino em formato texto:', error);
+    throw error;
+  }
+}
+
+// GET /api/hymns/{id}/download/holyrics - Download hino em formato Holyrics
+export async function downloadHymnHolyrics(id: string): Promise<DownloadResult> {
+  try {
+    const hymnId = parseHymnId(id);
+    const response = await fetch(`${API_URL}/api/hymns/${hymnId}/download/holyrics`, {
+      headers: getAuthHeaders(),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Hino não encontrado');
+      }
+      throw new Error(`Erro ao baixar hino: ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    const fileName = extractFileNameFromHeaders(response.headers, 'hino-holyrics.txt');
+    
+    return { blob, fileName };
+  } catch (error) {
+    console.error('Erro ao baixar hino em formato Holyrics:', error);
     throw error;
   }
 }

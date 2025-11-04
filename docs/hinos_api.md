@@ -20,7 +20,9 @@ hinos_api/
 ├── Models/          # Entidades do domínio (Hymn, Verse)
 ├── Data/            # DbContext e seed de dados
 ├── Services/        # Lógica de negócio e mapeamento
+│   └── HymnFormatService.cs  # Serviço de formatação de hinos (texto plano e Holyrics)
 ├── DTOs/            # Data Transfer Objects (Create, Update, Response)
+├── Endpoints/       # Endpoints da API organizados por funcionalidade
 ├── Program.cs       # Configuração e endpoints da API
 └── appsettings.json # Configurações da aplicação
 ```
@@ -156,6 +158,83 @@ Remove um hino.
 **Resposta:**
 - `204 No Content` - Hino removido
 - `404 Not Found` - Hino não encontrado
+
+### GET /api/hymns/{id}/download/plain
+Download do hino em formato texto plano.
+
+**Parâmetros:**
+- `id` (int): ID do hino
+
+**Resposta:**
+- `200 OK` - Arquivo .txt com o hino em formato texto simples
+  - Content-Type: `text/plain;charset=utf-8`
+  - Content-Disposition: `attachment; filename="hino-{número}-{título-slug}.txt"`
+- `404 Not Found` - Hino não encontrado
+
+**Formato do arquivo:**
+O arquivo contém apenas o título do hino seguido dos versos, sem marcadores de tipo. Ideal para copiar e colar em WhatsApp ou outros aplicativos.
+
+**Exemplo:**
+```
+Graça Maravilhosa
+
+Linha 1 do verso 1
+Linha 2 do verso 1
+
+Linha 1 do verso 2
+Linha 2 do verso 2
+```
+
+### GET /api/hymns/{id}/download/holyrics
+Download do hino em formato Holyrics.
+
+**Parâmetros:**
+- `id` (int): ID do hino
+
+**Resposta:**
+- `200 OK` - Arquivo .txt formatado para importação no Holyrics
+  - Content-Type: `text/plain;charset=utf-8`
+  - Content-Disposition: `attachment; filename="hino-{número}-{título-slug}.txt"`
+- `404 Not Found` - Hino não encontrado
+
+**Formato do arquivo:**
+O arquivo está formatado para importação direta no Holyrics, OpenLP e outros softwares de projeção. Inclui marcadores de tipo de verso `[V1]`, `[V2]`, `[R]`, etc., e metadados como Tom e BPM quando disponíveis.
+
+**Estrutura do formato:**
+```
+#{número} - {título}
+{hinário}
+
+[V1]
+{linha1}
+{linha2}
+
+[V2]
+{linha1}
+{linha2}
+
+---
+Tom: {key} | BPM: {bpm}
+```
+
+**Exemplo:**
+```
+#101 - Graça Maravilhosa
+Hinário Adventista do Sétimo Dia
+
+[V1]
+Maravilhosa graça
+Do meu Salvador
+
+[V2]
+Jesus morreu por mim
+Naquela cruz
+
+---
+Tom: G | BPM: 72
+```
+
+**Nota:** O arquivo pode ser importado diretamente no Holyrics através da opção de importação de arquivos de texto. O formato é compatível com OpenLP e outros softwares de projeção que suportam marcadores de tipo de verso.
 
 ### GET /health
 Health check da API.

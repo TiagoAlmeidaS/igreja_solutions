@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Hymn } from '../types/hymn';
 import { ThemeToggle } from './ThemeToggle';
-import { getHymnById } from '../services/api';
+import { getHymnById, downloadHymnPlain, downloadHymnHolyrics } from '../services/api';
 
 interface HymnDetailPageProps {
   hymnId: string;
@@ -130,27 +130,60 @@ export function HymnDetailPage({ hymnId, onBack }: HymnDetailPageProps) {
   };
 
   const handleCopyPlain = async () => {
-    const plainText = generatePlainText(hymn);
     try {
-      await navigator.clipboard.writeText(plainText);
+      // Tentar usar endpoint da API primeiro
+      try {
+        const { blob } = await downloadHymnPlain(hymnId);
+        const text = await blob.text();
+        await navigator.clipboard.writeText(text);
+      } catch (apiError) {
+        // Fallback para geração local se API falhar
+        console.warn('Erro ao baixar da API, usando geração local:', apiError);
+        const plainText = generatePlainText(hymn);
+        await navigator.clipboard.writeText(plainText);
+      }
       setCopiedPlain(true);
       setTimeout(() => setCopiedPlain(false), 2000);
     } catch (err) {
       console.error('Erro ao copiar:', err);
+      // Tentar novamente com geração local como último recurso
+      try {
+        const plainText = generatePlainText(hymn);
+        await navigator.clipboard.writeText(plainText);
+        setCopiedPlain(true);
+        setTimeout(() => setCopiedPlain(false), 2000);
+      } catch (fallbackError) {
+        console.error('Erro ao copiar (fallback):', fallbackError);
+      }
     }
   };
 
-  const handleDownloadHolyrics = () => {
-    const holyricsText = generateHolyricsText(hymn);
-    const blob = new Blob([holyricsText], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `hino-${hymn.number}-${hymn.title.toLowerCase().replace(/\s+/g, '-')}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+  const handleDownloadHolyrics = async () => {
+    try {
+      // Usar endpoint da API para download
+      const { blob, fileName } = await downloadHymnHolyrics(hymnId);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao baixar da API, usando geração local:', error);
+      // Fallback para geração local se API falhar
+      const holyricsText = generateHolyricsText(hymn);
+      const blob = new Blob([holyricsText], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `hino-${hymn.number}-${hymn.title.toLowerCase().replace(/\s+/g, '-')}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (

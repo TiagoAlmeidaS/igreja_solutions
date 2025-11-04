@@ -49,12 +49,17 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
       try {
         let results: Hymn[];
 
-        if (debouncedSearchTerm.trim()) {
-          // Buscar por termo
-          results = await searchHymns(debouncedSearchTerm);
+        const categoryFilter = activeFilter !== 'todos' ? activeFilter : undefined;
+        const searchTerm = debouncedSearchTerm.trim();
+
+        if (searchTerm && categoryFilter) {
+          // Usar getAllHymns com ambos os filtros (API suporta category + search simultaneamente)
+          results = await getAllHymns(categoryFilter, searchTerm);
+        } else if (searchTerm) {
+          // Apenas busca por termo
+          results = await searchHymns(searchTerm);
         } else {
-          // Carregar todos os hinos (com filtro de categoria se aplicável)
-          const categoryFilter = activeFilter !== 'todos' ? activeFilter : undefined;
+          // Apenas filtro de categoria (ou todos)
           results = await getAllHymns(categoryFilter);
         }
 

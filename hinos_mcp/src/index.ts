@@ -8,10 +8,12 @@
  */
 
 import { createServer } from './server.js';
+// @ts-ignore - TypeScript incorrectly reports this as unused, but it's used below
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 async function main() {
   const server = await createServer();
+  // Usar StdioServerTransport para comunicação via stdio
   const transport = new StdioServerTransport();
   
   await server.connect(transport);

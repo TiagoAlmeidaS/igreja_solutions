@@ -13,3 +13,5 @@ data/
 *.md
 .git/
 .gitignore
+Tests/
+**/Tests/

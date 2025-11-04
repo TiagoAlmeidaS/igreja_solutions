@@ -184,6 +184,64 @@ public static class HymnsEndpoints
         .Produces(StatusCodes.Status204NoContent)
         .Produces(StatusCodes.Status404NotFound);
 
+        // GET /api/hymns/{id}/download/plain - Download hino em formato texto plano
+        app.MapGet("/api/hymns/{id:int}/download/plain", async (
+            [FromServices] HymnQueryService queryService,
+            [FromServices] HymnFormatService formatService,
+            int id) =>
+        {
+            var hymn = await queryService.GetByIdAsync(id);
+
+            if (hymn == null)
+            {
+                return Results.NotFound(new { message = "Hino não encontrado" });
+            }
+
+            var plainText = formatService.GeneratePlainText(hymn);
+            var fileName = formatService.GenerateFileName(hymn, "plain");
+
+            return Results.File(
+                System.Text.Encoding.UTF8.GetBytes(plainText),
+                "text/plain;charset=utf-8",
+                fileName
+            );
+        })
+        .WithName("DownloadHymnPlain")
+        .WithTags("Hymns")
+        .WithSummary("Download hino em formato texto plano")
+        .WithDescription("Baixa o hino em formato texto simples, sem marcadores de tipo de verso. Ideal para copiar e colar em WhatsApp ou outros aplicativos.")
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
+
+        // GET /api/hymns/{id}/download/holyrics - Download hino em formato Holyrics
+        app.MapGet("/api/hymns/{id:int}/download/holyrics", async (
+            [FromServices] HymnQueryService queryService,
+            [FromServices] HymnFormatService formatService,
+            int id) =>
+        {
+            var hymn = await queryService.GetByIdAsync(id);
+
+            if (hymn == null)
+            {
+                return Results.NotFound(new { message = "Hino não encontrado" });
+            }
+
+            var holyricsText = formatService.GenerateHolyricsText(hymn);
+            var fileName = formatService.GenerateFileName(hymn, "holyrics");
+
+            return Results.File(
+                System.Text.Encoding.UTF8.GetBytes(holyricsText),
+                "text/plain;charset=utf-8",
+                fileName
+            );
+        })
+        .WithName("DownloadHymnHolyrics")
+        .WithTags("Hymns")
+        .WithSummary("Download hino em formato Holyrics")
+        .WithDescription("Baixa o hino formatado para importação direta no Holyrics, OpenLP e outros softwares de projeção. O arquivo inclui marcadores de tipo de verso [V1], [V2], [R], etc., e metadados como Tom e BPM quando disponíveis.")
+        .Produces(StatusCodes.Status200OK)
+        .Produces(StatusCodes.Status404NotFound);
+
         return app;
     }
 }

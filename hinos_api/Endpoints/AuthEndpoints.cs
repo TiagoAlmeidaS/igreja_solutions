@@ -9,7 +9,7 @@ public static class AuthEndpoints
     public static WebApplication MapAuthEndpoints(this WebApplication app)
     {
         // POST /api/auth/login - Login de autenticação
-        app.MapPost("/api/auth/login", async ([FromBody] LoginRequestDto request, [FromServices] AuthService authService) =>
+        app.MapPost("/api/auth/login", ([FromBody] LoginRequestDto request, [FromServices] AuthService authService) =>
         {
             if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
             {

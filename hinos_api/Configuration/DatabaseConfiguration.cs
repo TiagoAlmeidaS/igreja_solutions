@@ -7,8 +7,22 @@ public static class DatabaseConfiguration
 {
     public static IServiceCollection AddDatabaseConfiguration(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IWebHostEnvironment? environment = null)
     {
+        var envName = environment?.EnvironmentName 
+            ?? configuration["ASPNETCORE_ENVIRONMENT"] 
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") 
+            ?? "Development";
+
+        // Em ambiente de teste, usar InMemory
+        if (envName == "Testing")
+        {
+            services.AddDbContext<HymnsDbContext>(options =>
+                options.UseInMemoryDatabase($"TestDb_{Guid.NewGuid()}"));
+            return services;
+        }
+
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada");
 

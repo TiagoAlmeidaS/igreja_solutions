@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using hinos_api.DTOs;
 using System.Text.RegularExpressions;
+using System.Text;
 
 namespace hinos_api.Services;
 
@@ -9,19 +10,89 @@ public class HinarioSqliteService
     private readonly string _dbPath;
     private readonly ILogger<HinarioSqliteService>? _logger;
 
+    /// <summary>
+    /// Normaliza um número de hino removendo hífens, espaços e outros caracteres especiais
+    /// Exemplo: "S-38" ou "S 38" vira "S38"
+    /// </summary>
+    private static string NormalizeHymnNumber(string number)
+    {
+        if (string.IsNullOrWhiteSpace(number))
+            return string.Empty;
+
+        // Remove hífens, espaços, pontos e outros separadores comuns
+        var normalized = Regex.Replace(number, @"[\s\-\._]+", "", RegexOptions.Compiled);
+        return normalized.ToUpperInvariant();
+    }
+    
+    /// <summary>
+    /// Normaliza um número para comparação, removendo todos os caracteres não alfanuméricos
+    /// </summary>
+    private static string NormalizeForComparison(string number)
+    {
+        if (string.IsNullOrWhiteSpace(number))
+            return string.Empty;
+            
+        // Remove tudo exceto letras e números
+        return Regex.Replace(number, @"[^a-zA-Z0-9]", "", RegexOptions.Compiled).ToUpperInvariant();
+    }
+
+    /// <summary>
+    /// Cria múltiplos padrões de busca para um termo, incluindo versões normalizadas
+    /// Exemplo: "S-38" gera ["S-38", "S38", "s-38", "s38"]
+    /// </summary>
+    private static List<string> GenerateSearchPatterns(string term)
+    {
+        var patterns = new List<string>();
+        
+        // Adiciona o termo original
+        patterns.Add(term);
+        
+        // Adiciona versão normalizada (sem hífens/espaços)
+        var normalized = NormalizeHymnNumber(term);
+        if (normalized != term.ToUpperInvariant())
+        {
+            patterns.Add(normalized);
+        }
+        
+        // Adiciona versões com diferentes separadores
+        if (term.Contains("-"))
+        {
+            patterns.Add(term.Replace("-", ""));
+            patterns.Add(term.Replace("-", " "));
+        }
+        if (term.Contains(" "))
+        {
+            patterns.Add(term.Replace(" ", ""));
+            patterns.Add(term.Replace(" ", "-"));
+        }
+        
+        // Remove duplicatas e retorna
+        return patterns.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     public HinarioSqliteService(ILogger<HinarioSqliteService>? logger = null)
     {
         // Caminho do arquivo SQLite
         var projectRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", ".."));
+        var currentDir = Directory.GetCurrentDirectory();
+        var baseDir = AppContext.BaseDirectory;
+        
         var possiblePaths = new[]
         {
+            // Docker: /app/data/Hinario/HinarioCompleto.sqlite
+            Path.Combine(baseDir, "data", "Hinario", "HinarioCompleto.sqlite"),
+            Path.Combine(currentDir, "data", "Hinario", "HinarioCompleto.sqlite"),
+            // Desenvolvimento local: Data/Hinario/HinarioCompleto.sqlite
             Path.Combine(projectRoot, "Data", "Hinario", "HinarioCompleto.sqlite"),
-            Path.Combine(Directory.GetCurrentDirectory(), "Data", "Hinario", "HinarioCompleto.sqlite"),
-            Path.Combine(AppContext.BaseDirectory, "Data", "Hinario", "HinarioCompleto.sqlite")
+            Path.Combine(currentDir, "Data", "Hinario", "HinarioCompleto.sqlite"),
+            Path.Combine(baseDir, "Data", "Hinario", "HinarioCompleto.sqlite")
         };
 
         _dbPath = possiblePaths.FirstOrDefault(File.Exists) ?? possiblePaths.First();
         _logger = logger;
+        
+        // Log do caminho encontrado para debug
+        _logger?.LogInformation("HinarioSqliteService inicializado. Caminho do banco: {DbPath}, Existe: {Exists}", _dbPath, File.Exists(_dbPath));
     }
 
     private string GetConnectionString()
@@ -151,6 +222,7 @@ public class HinarioSqliteService
     {
         if (!IsSqliteAvailable())
         {
+            _logger?.LogWarning("SQLite não disponível para busca com termo: {Term}", term);
             return new List<HymnResponseDto>();
         }
 
@@ -159,18 +231,88 @@ public class HinarioSqliteService
             using var connection = new SqliteConnection(GetConnectionString());
             await connection.OpenAsync();
 
+            var normalizedTerm = NormalizeHymnNumber(term);
             var command = connection.CreateCommand();
-            command.CommandText = @"
-                SELECT Z_PK, ZNUMERO, ZTITULO, ZLETRA 
-                FROM ZENTITY 
-                WHERE ZNUMERO LIKE @term 
-                   OR ZTITULO LIKE @term 
-                   OR ZLETRA LIKE @term
-                ORDER BY ZNUMERO ASC";
+            
+            _logger?.LogInformation("Busca SQLite - Termo: '{Term}', Normalizado: '{Normalized}'", term, normalizedTerm);
+            
+            // Estratégia: busca ampla que captura candidatos e depois filtra em memória
+            // Para garantir que encontre mesmo quando o formato difere (ex: "S-38" vs "S38")
+            // Se o termo normalizado começa com letra seguida de número (ex: "S38" de "S-38"),
+            // busca TODOS os hinos que começam com essa letra para o filtro em memória processar
+            var firstChar = normalizedTerm.Length > 0 ? normalizedTerm[0].ToString() : "";
+            var hasNumber = normalizedTerm.Length > 1 && char.IsDigit(normalizedTerm[1]);
+            var isLetter = firstChar.Length > 0 && char.IsLetter(firstChar[0]);
+            
+            _logger?.LogInformation("Detecção: firstChar='{FirstChar}', hasNumber={HasNumber}, isLetter={IsLetter}", 
+                firstChar, hasNumber, isLetter);
+            
+            // Se o termo normalizado começa com letra seguida de número, busca ampla por todos os hinos dessa letra
+            if (hasNumber && isLetter)
+            {
+                var firstCharPattern = $"{firstChar}%";
+                _logger?.LogInformation("Usando busca ampla com padrão: '{Pattern}'", firstCharPattern);
+                
+                // Busca ampla: todos os hinos que começam com a letra (ex: "S%") + busca normal
+                command.CommandText = @"
+                    SELECT Z_PK, ZNUMERO, ZTITULO, ZLETRA 
+                    FROM ZENTITY 
+                    WHERE (
+                        -- Busca no número: formato original
+                        ZNUMERO LIKE @term COLLATE NOCASE
+                        OR ZNUMERO = @term COLLATE NOCASE
+                        -- Busca no número: formato normalizado
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') LIKE @termNorm COLLATE NOCASE
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') = @termNormExact COLLATE NOCASE
+                        OR ZNUMERO LIKE @termNorm COLLATE NOCASE
+                        OR ZNUMERO = @termNormExact COLLATE NOCASE
+                        -- Busca ampla: todos os hinos que começam com a letra (para o filtro processar)
+                        OR ZNUMERO LIKE @firstCharPattern COLLATE NOCASE
+                    )
+                    OR (
+                        -- Busca em título e letras
+                        ZTITULO LIKE @term COLLATE NOCASE
+                        OR ZLETRA LIKE @term COLLATE NOCASE
+                        OR ZTITULO LIKE @termNorm COLLATE NOCASE
+                        OR ZLETRA LIKE @termNorm COLLATE NOCASE
+                    )
+                    ORDER BY ZNUMERO ASC";
+                
+                command.Parameters.AddWithValue("@firstCharPattern", firstCharPattern);
+                _logger?.LogInformation("Query SQL configurada com busca ampla para padrão '{Pattern}'", firstCharPattern);
+            }
+            else
+            {
+                _logger?.LogInformation("Usando busca normal (não atendeu critérios para busca ampla)");
+                // Busca normal para outros casos
+                command.CommandText = @"
+                    SELECT Z_PK, ZNUMERO, ZTITULO, ZLETRA 
+                    FROM ZENTITY 
+                    WHERE (
+                        ZNUMERO LIKE @term COLLATE NOCASE
+                        OR ZNUMERO = @term COLLATE NOCASE
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') LIKE @termNorm COLLATE NOCASE
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') = @termNormExact COLLATE NOCASE
+                        OR ZNUMERO LIKE @termNorm COLLATE NOCASE
+                        OR ZNUMERO = @termNormExact COLLATE NOCASE
+                    )
+                    OR (
+                        ZTITULO LIKE @term COLLATE NOCASE
+                        OR ZLETRA LIKE @term COLLATE NOCASE
+                        OR ZTITULO LIKE @termNorm COLLATE NOCASE
+                        OR ZLETRA LIKE @termNorm COLLATE NOCASE
+                    )
+                    ORDER BY ZNUMERO ASC";
+            }
 
-            command.Parameters.AddWithValue("@term", $"%{term}%");
+            var termPattern = $"%{term}%";
+            var normPattern = $"%{normalizedTerm}%";
+            
+            command.Parameters.AddWithValue("@term", termPattern);
+            command.Parameters.AddWithValue("@termNorm", normPattern);
+            command.Parameters.AddWithValue("@termNormExact", normalizedTerm);
 
-            var hymns = new List<HymnResponseDto>();
+            var allHymns = new List<HymnResponseDto>();
 
             using var reader = await command.ExecuteReaderAsync();
             while (await reader.ReadAsync())
@@ -178,11 +320,47 @@ public class HinarioSqliteService
                 var hymn = MapRowToHymnDto(reader);
                 if (hymn != null)
                 {
-                    hymns.Add(hymn);
+                    allHymns.Add(hymn);
                 }
             }
+            
+            // Filtro adicional em memória para garantir que encontre mesmo com diferentes formatos
+            // Compara o número normalizado do hino com o termo normalizado
+            var filteredHymns = allHymns.Where(h =>
+            {
+                var normalizedHymnNumber = NormalizeHymnNumber(h.Number);
+                // Compara número normalizado
+                if (normalizedHymnNumber.Contains(normalizedTerm, StringComparison.OrdinalIgnoreCase) ||
+                    normalizedHymnNumber == normalizedTerm)
+                {
+                    return true;
+                }
+                // Compara número original
+                if (h.Number.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    h.Number == term)
+                {
+                    return true;
+                }
+                // Compara título e letras
+                if (h.Title.Contains(term, StringComparison.OrdinalIgnoreCase) ||
+                    h.Verses.Any(v => v.Lines.Any(l => l.Contains(term, StringComparison.OrdinalIgnoreCase))))
+                {
+                    return true;
+                }
+                return false;
+            }).ToList();
 
-            return hymns;
+            _logger?.LogInformation("Busca SQLite com termo '{Term}' (normalizado: '{Normalized}'): {SqlCount} da query, {FilteredCount} após filtro", term, normalizedTerm, allHymns.Count, filteredHymns.Count);
+            
+            // Log detalhado para debug
+            if (allHymns.Count > 0 && filteredHymns.Count == 0)
+            {
+                _logger?.LogWarning("Query retornou {Count} hinos mas filtro não encontrou nenhum. Exemplos: {Examples}", 
+                    allHymns.Count, 
+                    string.Join(", ", allHymns.Take(3).Select(h => $"{h.Number} (normalizado: {NormalizeHymnNumber(h.Number)})")));
+            }
+            
+            return filteredHymns;
         }
         catch (Exception ex)
         {

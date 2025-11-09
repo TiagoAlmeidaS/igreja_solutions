@@ -6,7 +6,7 @@ using hinos_api.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configurações de serviços
-builder.Services.AddDatabaseConfiguration(builder.Configuration);
+builder.Services.AddDatabaseConfiguration(builder.Configuration, builder.Environment);
 builder.Services.AddCorsConfiguration();
 builder.Services.AddSwaggerConfiguration();
 builder.Services.AddHealthChecks();

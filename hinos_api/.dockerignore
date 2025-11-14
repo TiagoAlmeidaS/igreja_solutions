@@ -5,13 +5,22 @@ obj/
 *.cache
 .vs/
 .vscode/
-*.db
-*.db-shm
-*.db-wal
+# Excluir arquivos SQLite
+Data/Hinario/*.db
+Data/Hinario/*.db-shm
+Data/Hinario/*.db-wal
+# Excluir pasta data/ (minúsculo) - dados de runtime
 data/
-!.dockerignore
+# Excluir pasta hinos_api/ interna
+hinos_api/
+# Excluir documentação
 *.md
+docs/
+# Excluir git
 .git/
 .gitignore
+# Excluir testes
 Tests/
 **/Tests/
+# Excluir Tools
+Tools/

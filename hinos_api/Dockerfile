@@ -6,9 +6,30 @@ WORKDIR /src
 COPY hinos_api.csproj ./
 RUN dotnet restore hinos_api.csproj
 
-# Copy everything else (excluding Tests folder)
-COPY . ./
-# Exclude Tests folder from build
+# Copy source files explicitly to ensure all necessary files are included
+# Copy Data folder - copy all .cs files explicitly
+COPY Data/DatabaseInitializer.cs ./Data/
+COPY Data/DbSeeder.cs ./Data/
+COPY Data/HymnsDbContext.cs ./Data/
+# Copy Configuration folder
+COPY Configuration/ ./Configuration/
+# Copy DTOs folder
+COPY DTOs/ ./DTOs/
+# Copy Endpoints folder
+COPY Endpoints/ ./Endpoints/
+# Copy Models folder
+COPY Models/ ./Models/
+# Copy Services folder
+COPY Services/ ./Services/
+# Copy Properties folder
+COPY Properties/ ./Properties/
+# Copy Scripts folder
+COPY Scripts/ ./Scripts/
+# Copy root files
+COPY Program.cs ./
+COPY appsettings*.json ./
+
+# Build and publish
 RUN dotnet publish hinos_api.csproj -c Release -o /app/publish --no-restore
 
 # Runtime stage

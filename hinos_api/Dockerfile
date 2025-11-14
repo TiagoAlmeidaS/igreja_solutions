@@ -6,8 +6,11 @@ WORKDIR /src
 COPY hinos_api.csproj ./
 RUN dotnet restore hinos_api.csproj
 
-# Copy all source files (excluding what's in .dockerignore)
-# This approach ensures all necessary files are included
+# IMPORTANT: Copy Data folder FIRST and explicitly to ensure it's included
+# This bypasses any .dockerignore issues
+COPY Data/ ./Data/
+
+# Copy all other source files (excluding what's in .dockerignore)
 COPY . ./
 
 # Build and publish

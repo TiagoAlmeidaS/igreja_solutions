@@ -1,26 +1,36 @@
+# Build artifacts
 bin/
 obj/
 *.user
 *.suo
 *.cache
+
+# IDE files
 .vs/
 .vscode/
-# Excluir apenas arquivos SQLite dentro de Data/Hinario/, mas manter todos os .cs
+
+# SQLite database files (only in Hinario subfolder)
 Data/Hinario/*.db
 Data/Hinario/*.db-shm
 Data/Hinario/*.db-wal
-# Excluir pasta data/ (minúsculo) - dados de runtime
+
+# Runtime data folder (lowercase)
 data/
-# Excluir pasta hinos_api/ interna
+
+# Internal hinos_api folder
 hinos_api/
-# Excluir documentação
+
+# Documentation
 *.md
 docs/
-# Excluir git
+
+# Git
 .git/
 .gitignore
-# Excluir testes
+
+# Tests
 Tests/
 **/Tests/
-# Excluir Tools
+
+# Tools
 Tools/

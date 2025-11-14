@@ -85,9 +85,9 @@ services:
     image: caddy:2-alpine
     container_name: hinos_caddy
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "88:80"      # Porta 88 do host mapeia para porta 80 do container (HTTP)
+      - "8443:443"   # Porta 8443 do host mapeia para porta 443 do container (HTTPS)
+      - "8443:443/udp"
       - "2019:2019"  # Dashboard administrativo do Caddy
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro

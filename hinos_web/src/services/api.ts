@@ -1,6 +1,8 @@
 import { Hymn, Verse } from '../types/hymn';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Se VITE_API_URL estiver vazio ou undefined, usa caminho relativo (para Caddy)
+// Caso contrário, usa a URL configurada (para desenvolvimento local)
+const API_URL = import.meta.env.VITE_API_URL ?? '';
 
 export interface ApiError {
   message: string;
@@ -104,7 +106,8 @@ function getAuthHeaders(): HeadersInit {
 // POST /api/auth/login - Login de autenticação
 export async function login(credentials: LoginRequest): Promise<LoginResponse> {
   try {
-    const response = await fetch(`${API_URL}/api/auth/login`, {
+    const url = API_URL ? `${API_URL}/api/auth/login` : '/api/auth/login';
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -152,7 +155,7 @@ export async function getAllHymns(
     if (category && category !== 'todos') params.append('category', category);
     if (search) params.append('search', search);
 
-    const url = `${API_URL}/api/hymns${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = API_URL ? `${API_URL}/api/hymns${params.toString() ? `?${params.toString()}` : ''}` : `/api/hymns${params.toString() ? `?${params.toString()}` : ''}`;
     const response = await fetch(url);
     const apiHymns = await handleResponse<ApiHymn[]>(response);
     return apiHymns.map(mapApiHymnToHymn);
@@ -176,7 +179,8 @@ export async function getHymnById(id: string): Promise<Hymn | null> {
   try {
     // Converter string para int (API espera int, incluindo negativos para SQLite)
     const hymnId = parseHymnId(id);
-    const response = await fetch(`${API_URL}/api/hymns/${hymnId}`);
+    const url = API_URL ? `${API_URL}/api/hymns/${hymnId}` : `/api/hymns/${hymnId}`;
+    const response = await fetch(url);
     const apiHymn = await handleResponse<ApiHymn>(response);
     return mapApiHymnToHymn(apiHymn);
   } catch (error: any) {
@@ -200,7 +204,8 @@ export async function searchHymns(term: string): Promise<Hymn[]> {
 
   try {
     const params = new URLSearchParams({ term: trimmedTerm });
-    const response = await fetch(`${API_URL}/api/hymns/search?${params.toString()}`);
+    const url = API_URL ? `${API_URL}/api/hymns/search?${params.toString()}` : `/api/hymns/search?${params.toString()}`;
+    const response = await fetch(url);
     const apiHymns = await handleResponse<ApiHymn[]>(response);
     return apiHymns.map(mapApiHymnToHymn);
   } catch (error) {
@@ -212,7 +217,8 @@ export async function searchHymns(term: string): Promise<Hymn[]> {
 // POST /api/hymns - Cria novo hino
 export async function createHymn(hymn: CreateHymnRequest): Promise<Hymn> {
   try {
-    const response = await fetch(`${API_URL}/api/hymns`, {
+    const url = API_URL ? `${API_URL}/api/hymns` : '/api/hymns';
+    const response = await fetch(url, {
       method: 'POST',
       headers: getAuthHeaders(),
       body: JSON.stringify(hymn),
@@ -235,7 +241,8 @@ export async function updateHymn(id: string, hymn: UpdateHymnRequest): Promise<H
       throw new Error('Hinos do hinário base são somente leitura e não podem ser editados');
     }
     
-    const response = await fetch(`${API_URL}/api/hymns/${hymnId}`, {
+    const url = API_URL ? `${API_URL}/api/hymns/${hymnId}` : `/api/hymns/${hymnId}`;
+    const response = await fetch(url, {
       method: 'PUT',
       headers: getAuthHeaders(),
       body: JSON.stringify(hymn),
@@ -258,7 +265,8 @@ export async function deleteHymn(id: string): Promise<void> {
       throw new Error('Hinos do hinário base são somente leitura e não podem ser removidos');
     }
     
-    const response = await fetch(`${API_URL}/api/hymns/${hymnId}`, {
+    const url = API_URL ? `${API_URL}/api/hymns/${hymnId}` : `/api/hymns/${hymnId}`;
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: getAuthHeaders(),
     });
@@ -292,7 +300,8 @@ function extractFileNameFromHeaders(headers: Headers, defaultName: string): stri
 export async function downloadHymnPlain(id: string): Promise<DownloadResult> {
   try {
     const hymnId = parseHymnId(id);
-    const response = await fetch(`${API_URL}/api/hymns/${hymnId}/download/plain`, {
+    const url = API_URL ? `${API_URL}/api/hymns/${hymnId}/download/plain` : `/api/hymns/${hymnId}/download/plain`;
+    const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
     
@@ -317,7 +326,8 @@ export async function downloadHymnPlain(id: string): Promise<DownloadResult> {
 export async function downloadHymnHolyrics(id: string): Promise<DownloadResult> {
   try {
     const hymnId = parseHymnId(id);
-    const response = await fetch(`${API_URL}/api/hymns/${hymnId}/download/holyrics`, {
+    const url = API_URL ? `${API_URL}/api/hymns/${hymnId}/download/holyrics` : `/api/hymns/${hymnId}/download/holyrics`;
+    const response = await fetch(url, {
       headers: getAuthHeaders(),
     });
     

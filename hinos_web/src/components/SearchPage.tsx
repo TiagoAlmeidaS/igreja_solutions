@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MessageSquarePlus, Loader2, AlertCircle } from 'lucide-react';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -75,14 +75,6 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
 
     loadHymns();
   }, [debouncedSearchTerm, activeFilter]);
-
-  // Aplicar filtro de categoria localmente (se não usou na busca)
-  const filteredHymns = useMemo(() => {
-    if (activeFilter === 'todos') {
-      return hymns;
-    }
-    return hymns.filter(hymn => hymn.category === activeFilter);
-  }, [hymns, activeFilter]);
 
   // Auto-focus no campo de busca
   useEffect(() => {
@@ -249,12 +241,12 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
             <>
               {searchTerm && (
                 <div className="mb-4 text-muted-foreground">
-                  {filteredHymns.length} {filteredHymns.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
+                  {hymns.length} {hymns.length === 1 ? 'resultado encontrado' : 'resultados encontrados'}
                 </div>
               )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredHymns.map(hymn => (
+                {hymns.map(hymn => (
                   <Card
                     key={hymn.id}
                     onClick={() => onSelectHymn(hymn.id)}
@@ -279,7 +271,7 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
                 ))}
               </div>
 
-              {filteredHymns.length === 0 && !searchTerm && !isLoading && (
+              {hymns.length === 0 && !searchTerm && !isLoading && (
                 <div className="text-center py-12">
                   <div className="text-muted-foreground mb-2 text-4xl">🎵</div>
                   <p className="text-foreground">
@@ -291,7 +283,7 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
                 </div>
               )}
 
-              {filteredHymns.length === 0 && searchTerm && !isLoading && (
+              {hymns.length === 0 && searchTerm && !isLoading && (
                 <div className="text-center py-12">
                   <div className="text-muted-foreground mb-2 text-4xl">🔍</div>
                   <p className="text-foreground">

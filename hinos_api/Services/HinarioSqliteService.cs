@@ -423,6 +423,151 @@ public class HinarioSqliteService
         }
     }
 
+    public async Task<List<HymnResponseDto>> FilterByCategoryAndSearchAsync(string category, string search)
+    {
+        // Combina filtro de categoria com busca por termo
+        if (!IsSqliteAvailable())
+        {
+            _logger?.LogWarning("SQLite não disponível para filtro combinado: categoria={Category}, termo={Search}", category, search);
+            return new List<HymnResponseDto>();
+        }
+
+        try
+        {
+            using var connection = new SqliteConnection(GetConnectionString());
+            await connection.OpenAsync();
+
+            var normalizedTerm = NormalizeHymnNumber(search);
+            var command = connection.CreateCommand();
+            
+            // Construir cláusula WHERE para categoria
+            string categoryClause = category.ToLower() switch
+            {
+                "canticos" => "ZNUMERO LIKE 'C%'",
+                "suplementar" => "ZNUMERO LIKE 'S%'",
+                "hinario" => "ZNUMERO NOT LIKE 'C%' AND ZNUMERO NOT LIKE 'S%' AND ZNUMERO GLOB '[0-9]*'",
+                "novos" => "ZNUMERO LIKE 'N%' OR ZNUMERO LIKE 'New%'",
+                _ => "1=1" // Todas as categorias
+            };
+
+            // Detectar se precisa de busca ampla (letra seguida de número)
+            var firstChar = normalizedTerm.Length > 0 ? normalizedTerm[0].ToString() : "";
+            var hasNumber = normalizedTerm.Length > 1 && char.IsDigit(normalizedTerm[1]);
+            var isLetter = firstChar.Length > 0 && char.IsLetter(firstChar[0]);
+            
+            _logger?.LogInformation("Filtro combinado SQLite - Categoria: '{Category}', Termo: '{Term}', Normalizado: '{Normalized}'", category, search, normalizedTerm);
+
+            var termPattern = $"%{search}%";
+            var normPattern = $"%{normalizedTerm}%";
+            
+            // Construir query SQL combinando categoria e busca
+            if (hasNumber && isLetter)
+            {
+                var firstCharPattern = $"{firstChar}%";
+                command.CommandText = $@"
+                    SELECT Z_PK, ZNUMERO, ZTITULO, ZLETRA 
+                    FROM ZENTITY 
+                    WHERE ({categoryClause})
+                    AND (
+                        -- Busca no número: formato original
+                        (ZNUMERO LIKE @term COLLATE NOCASE
+                        OR ZNUMERO = @term COLLATE NOCASE
+                        -- Busca no número: formato normalizado
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') LIKE @termNorm COLLATE NOCASE
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') = @termNormExact COLLATE NOCASE
+                        OR ZNUMERO LIKE @termNorm COLLATE NOCASE
+                        OR ZNUMERO = @termNormExact COLLATE NOCASE
+                        -- Busca ampla: todos os hinos que começam com a letra
+                        OR ZNUMERO LIKE @firstCharPattern COLLATE NOCASE)
+                        OR (
+                        -- Busca em título e letras
+                        ZTITULO LIKE @term COLLATE NOCASE
+                        OR ZLETRA LIKE @term COLLATE NOCASE
+                        OR ZTITULO LIKE @termNorm COLLATE NOCASE
+                        OR ZLETRA LIKE @termNorm COLLATE NOCASE)
+                    )
+                    ORDER BY ZNUMERO ASC";
+                
+                command.Parameters.AddWithValue("@firstCharPattern", firstCharPattern);
+            }
+            else
+            {
+                command.CommandText = $@"
+                    SELECT Z_PK, ZNUMERO, ZTITULO, ZLETRA 
+                    FROM ZENTITY 
+                    WHERE ({categoryClause})
+                    AND (
+                        ZNUMERO LIKE @term COLLATE NOCASE
+                        OR ZNUMERO = @term COLLATE NOCASE
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') LIKE @termNorm COLLATE NOCASE
+                        OR REPLACE(REPLACE(REPLACE(ZNUMERO, '-', ''), ' ', ''), '.', '') = @termNormExact COLLATE NOCASE
+                        OR ZNUMERO LIKE @termNorm COLLATE NOCASE
+                        OR ZNUMERO = @termNormExact COLLATE NOCASE
+                        OR ZTITULO LIKE @term COLLATE NOCASE
+                        OR ZLETRA LIKE @term COLLATE NOCASE
+                        OR ZTITULO LIKE @termNorm COLLATE NOCASE
+                        OR ZLETRA LIKE @termNorm COLLATE NOCASE
+                    )
+                    ORDER BY ZNUMERO ASC";
+            }
+
+            command.Parameters.AddWithValue("@term", termPattern);
+            command.Parameters.AddWithValue("@termNorm", normPattern);
+            command.Parameters.AddWithValue("@termNormExact", normalizedTerm);
+
+            var allHymns = new List<HymnResponseDto>();
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                var hymn = MapRowToHymnDto(reader);
+                if (hymn != null)
+                {
+                    allHymns.Add(hymn);
+                }
+            }
+            
+            // Filtro adicional em memória para garantir precisão
+            var filteredHymns = allHymns.Where(h =>
+            {
+                // Verificar categoria primeiro
+                var hymnCategory = DetermineCategory(h.Number);
+                if (hymnCategory.ToLower() != category.ToLower())
+                {
+                    return false;
+                }
+                
+                // Verificar busca
+                var normalizedHymnNumber = NormalizeHymnNumber(h.Number);
+                if (normalizedHymnNumber.Contains(normalizedTerm, StringComparison.OrdinalIgnoreCase) ||
+                    normalizedHymnNumber == normalizedTerm)
+                {
+                    return true;
+                }
+                if (h.Number.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    h.Number == search)
+                {
+                    return true;
+                }
+                if (h.Title.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                    h.Verses.Any(v => v.Lines.Any(l => l.Contains(search, StringComparison.OrdinalIgnoreCase))))
+                {
+                    return true;
+                }
+                return false;
+            }).ToList();
+
+            _logger?.LogInformation("Filtro combinado SQLite - Categoria: '{Category}', Termo: '{Term}': {SqlCount} da query, {FilteredCount} após filtro", category, search, allHymns.Count, filteredHymns.Count);
+            
+            return filteredHymns;
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Erro ao filtrar hinos por categoria {Category} e termo {Search} no SQLite", category, search);
+            return new List<HymnResponseDto>();
+        }
+    }
+
     private HymnResponseDto? MapRowToHymnDto(SqliteDataReader reader)
     {
         try

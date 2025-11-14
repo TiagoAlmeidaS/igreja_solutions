@@ -44,7 +44,12 @@ public class HymnQueryService
         {
             List<HymnResponseDto> sqliteHymns;
             
-            if (!string.IsNullOrWhiteSpace(category))
+            // Se ambos category e search estão presentes, usar método combinado
+            if (!string.IsNullOrWhiteSpace(category) && !string.IsNullOrWhiteSpace(search))
+            {
+                sqliteHymns = await _sqliteService.FilterByCategoryAndSearchAsync(category, search);
+            }
+            else if (!string.IsNullOrWhiteSpace(category))
             {
                 sqliteHymns = await _sqliteService.FilterByCategoryAsync(category);
             }

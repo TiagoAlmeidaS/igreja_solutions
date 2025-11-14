@@ -5,7 +5,7 @@ obj/
 *.cache
 .vs/
 .vscode/
-# Excluir arquivos SQLite
+# Excluir apenas arquivos SQLite dentro de Data/Hinario/, mas manter todos os .cs
 Data/Hinario/*.db
 Data/Hinario/*.db-shm
 Data/Hinario/*.db-wal

@@ -9,6 +9,10 @@ igreja_solutions/
 ├── hinos_api/          # API .NET 9 para gerenciamento de hinários
 ├── hinos_web/          # Frontend React para visualização de hinários
 ├── hinos_mcp/          # Servidor MCP para integração com LLMs
+├── igrejaconecta/      # MicroSaaS para automação de avisos via WhatsApp
+│   ├── backend/        # FastAPI backend
+│   ├── frontend/       # React frontend
+│   └── database/       # SQL schemas
 ├── docs/               # Documentação dos projetos
 └── docker-compose.yml  # Orquestração Docker dos serviços
 ```
@@ -28,6 +32,13 @@ Servidor MCP (Model Context Protocol) em TypeScript para integração da API com
 - [Documentação completa](./docs/hinos_mcp.md)
 
 **Nota:** O serviço MCP está configurado no Docker Compose e se comunica com a API via rede interna Docker. Clientes MCP podem se conectar ao container para usar o servidor.
+
+### igrejaconecta
+MicroSaaS para automação de avisos e transmissões via WhatsApp (Meta Cloud API).
+- [Documentação completa](./docs/igrejaconecta.md)
+- Backend: FastAPI + PostgreSQL + Redis + Celery
+- Frontend: React + Vite
+- Status: Estrutura base criada - Em desenvolvimento
 
 ## Executando com Docker Compose
 
@@ -107,6 +118,7 @@ A API utiliza SQLite por padrão. O banco de dados é criado automaticamente na 
 - [API - hinos_api](./docs/hinos_api.md)
 - [Frontend - hinos_web](./docs/hinos_web.md)
 - [Servidor MCP - hinos_mcp](./docs/hinos_mcp.md)
+- [IgrejaConecta - igrejaconecta](./docs/igrejaconecta.md)
 
 ## Desenvolvimento
 

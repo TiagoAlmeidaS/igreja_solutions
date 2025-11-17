@@ -1,0 +1,4 @@
+"""
+Application layer - Use cases and DTOs
+"""
+

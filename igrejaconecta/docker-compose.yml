@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: igrejaconecta_postgres
+    environment:
+      - POSTGRES_DB=igrejaconecta
+      - POSTGRES_USER=igreja_user
+      - POSTGRES_PASSWORD=igreja_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - igrejaconecta_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U igreja_user -d igrejaconecta"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: igrejaconecta_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - igrejaconecta_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: igrejaconecta_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://igreja_user:igreja_password@postgres:5432/igrejaconecta
+      - REDIS_URL=redis://redis:6379/0
+      - SECRET_KEY=supersecretkey123
+      - JWT_ALGORITHM=HS256
+      - JWT_EXPIRE_MINUTES=1440
+      - WHATSAPP_API_VERSION=v20.0
+      - ENVIRONMENT=development
+      - DEBUG=True
+    volumes:
+      - ./backend:/app
+    networks:
+      - igrejaconecta_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_URL=http://localhost:8000/api/v1
+    container_name: igrejaconecta_frontend
+    ports:
+      - "3000:80"
+    networks:
+      - igrejaconecta_network
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+networks:
+  igrejaconecta_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+

@@ -1,0 +1,123 @@
+# Configuração Global do Caddy
+{
+    # Email para notificações do Let's Encrypt
+    email tas.tech.developer@gmail.com
+    
+    # Dashboard administrativo (opcional)
+    admin :2019
+    
+    # Logs estruturados
+    log {
+        output stdout
+        format json
+        level INFO
+    }
+}
+
+# Configuração para desenvolvimento local
+localhost {
+    # Logs para desenvolvimento
+    log {
+        output stdout
+        format console
+    }
+
+    # Servir o frontend na raiz
+    handle / {
+        reverse_proxy hinos_web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Proxy reverso para a API
+    handle /api/* {
+        reverse_proxy hinos_api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Proxy reverso para Swagger
+    handle /swagger* {
+        reverse_proxy hinos_api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Health check endpoint
+    handle /health {
+        reverse_proxy hinos_api:8080 {
+            header_up Host {host}
+        }
+    }
+}
+
+# Configuração para produção - Subdomínio igreja.tastechdeveloper.shop
+igreja.tastechdeveloper.shop {
+    # HTTPS automático com Let's Encrypt (configurado globalmente)
+    # O Caddy automaticamente obtém e renova certificados SSL
+    
+    # Servir o frontend na raiz
+    handle / {
+        reverse_proxy hinos_web:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Proxy reverso para a API
+    handle /api/* {
+        reverse_proxy hinos_api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Proxy reverso para Swagger
+    handle /swagger* {
+        reverse_proxy hinos_api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # Health check endpoint
+    handle /health {
+        reverse_proxy hinos_api:8080 {
+            header_up Host {host}
+        }
+    }
+
+    # Headers de segurança
+    header {
+        # HSTS - Força HTTPS
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        # XSS Protection
+        X-XSS-Protection "1; mode=block"
+        # Content Type Options
+        X-Content-Type-Options "nosniff"
+        # Frame Options
+        X-Frame-Options "SAMEORIGIN"
+        # Referrer Policy
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Permissions Policy
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+
+    # Compressão
+    encode gzip zstd
+}

@@ -1,17 +1,36 @@
+# Build artifacts
 bin/
 obj/
 *.user
 *.suo
 *.cache
+
+# IDE files
 .vs/
 .vscode/
-*.db
-*.db-shm
-*.db-wal
+
+# SQLite database files (only in Hinario subfolder)
+Data/Hinario/*.db
+Data/Hinario/*.db-shm
+Data/Hinario/*.db-wal
+
+# Runtime data folder (lowercase)
 data/
-!.dockerignore
+
+# Internal hinos_api folder
+hinos_api/
+
+# Documentation
 *.md
+docs/
+
+# Git
 .git/
 .gitignore
+
+# Tests
 Tests/
 **/Tests/
+
+# Tools
+Tools/

@@ -168,16 +168,21 @@ storybook-static/
 # ==========================================
 # Database Files
 # ==========================================
-## SQLite
+## SQLite - Ignorar arquivos de banco de dados
 *.db
 *.db-shm
 *.db-wal
 *.sqlite
 *.sqlite3
 
-## Database data directory (manter estrutura)
-hinos_api/data/
-!hinos_api/data/.gitkeep
+## IMPORTANTE: Garantir que arquivos .cs em Data/ sejam versionados
+## Exceções para arquivos de código fonte na pasta Data/
+!hinos_api/Data/
+!hinos_api/Data/**/*.cs
+!hinos_api/Data/.gitkeep
+
+## Database data directory (runtime data - lowercase)
+## Esta pasta é criada em runtime/Docker e NÃO deve ser versionada
 
 # ==========================================
 # Docker

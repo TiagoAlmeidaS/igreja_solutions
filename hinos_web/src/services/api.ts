@@ -405,3 +405,146 @@ export function parseLyricsText(text: string): Verse[] {
   
   return verses;
 }
+
+interface ApiWarCry {
+  id: number;
+  title: string;
+  fileName: string;
+  content: string;
+  messageNumber: number;
+  theme?: string;
+  sourcePath: string;
+  fileSize: number;
+  fileModifiedAt?: string;
+  syncedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ApiWarCryListItem {
+  id: number;
+  title: string;
+  messageNumber: number;
+  theme?: string;
+  contentPreview: string;
+  syncedAt: string;
+}
+
+export interface WarCrySyncStatus {
+  isRunning: boolean;
+  lastSyncStart?: string;
+  lastSyncEnd?: string;
+  totalWarCries: number;
+  newWarCries: number;
+  updatedWarCries: number;
+  failedCount: number;
+  lastError?: string;
+  recentFiles: string[];
+}
+
+function mapApiWarCryToHymn(apiWarCry: ApiWarCry): Hymn {
+  const contentLines = apiWarCry.content.split('\n').filter(line => line.trim());
+  
+  return {
+    id: `wc-${apiWarCry.id}`,
+    number: `G${apiWarCry.messageNumber}`,
+    title: apiWarCry.title,
+    category: 'gritos',
+    hymnBook: 'Gritos de Guerra',
+    verses: [{
+      type: 'V1',
+      lines: contentLines
+    }]
+  };
+}
+
+export async function getAllWarCries(search?: string): Promise<Hymn[]> {
+  try {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+
+    const url = API_URL ? `${API_URL}/api/warcries${params.toString() ? `?${params.toString()}` : ''}` : `/api/warcries${params.toString() ? `?${params.toString()}` : ''}`;
+    const response = await fetch(url);
+    const apiWarCries = await handleResponse<ApiWarCryListItem[]>(response);
+    
+    const hymnsPromises = apiWarCries.map(async (wc) => {
+      const detailUrl = API_URL ? `${API_URL}/api/warcries/${wc.id}` : `/api/warcries/${wc.id}`;
+      const detailResponse = await fetch(detailUrl);
+      const fullWarCry = await handleResponse<ApiWarCry>(detailResponse);
+      return mapApiWarCryToHymn(fullWarCry);
+    });
+    
+    return Promise.all(hymnsPromises);
+  } catch (error) {
+    console.error('Erro ao buscar Gritos de Guerra:', error);
+    throw error;
+  }
+}
+
+export async function getWarCryById(id: number): Promise<Hymn | null> {
+  try {
+    const url = API_URL ? `${API_URL}/api/warcries/${id}` : `/api/warcries/${id}`;
+    const response = await fetch(url);
+    const apiWarCry = await handleResponse<ApiWarCry>(response);
+    return mapApiWarCryToHymn(apiWarCry);
+  } catch (error: any) {
+    if (error.message.includes('404') || error.message.includes('não encontrado')) {
+      return null;
+    }
+    console.error('Erro ao buscar Grito de Guerra:', error);
+    throw error;
+  }
+}
+
+export async function searchWarCries(term: string): Promise<Hymn[]> {
+  const trimmedTerm = term.trim();
+  
+  if (!trimmedTerm) {
+    return getAllWarCries();
+  }
+
+  try {
+    const params = new URLSearchParams({ term: trimmedTerm });
+    const url = API_URL ? `${API_URL}/api/warcries/search?${params.toString()}` : `/api/warcries/search?${params.toString()}`;
+    const apiWarCries = await handleResponse<ApiWarCryListItem[]>(await (await fetch(url)).json());
+    
+    const hymnsPromises = apiWarCries.map(async (wc) => {
+      const detailUrl = API_URL ? `${API_URL}/api/warcries/${wc.id}` : `/api/warcries/${wc.id}`;
+      const detailResponse = await fetch(detailUrl);
+      const fullWarCry = await handleResponse<ApiWarCry>(detailResponse);
+      return mapApiWarCryToHymn(fullWarCry);
+    });
+    
+    return Promise.all(hymnsPromises);
+  } catch (error) {
+    console.error('Erro ao buscar Gritos de Guerra:', error);
+    throw error;
+  }
+}
+
+export async function triggerWarCrySync(): Promise<WarCrySyncStatus> {
+  try {
+    const url = API_URL ? `${API_URL}/api/warcries/sync` : '/api/warcries/sync';
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+    
+    const data = await handleResponse<{ status: WarCrySyncStatus }>(response);
+    return data.status;
+  } catch (error) {
+    console.error('Erro ao iniciar sincronização:', error);
+    throw error;
+  }
+}
+
+export async function getWarCrySyncStatus(): Promise<WarCrySyncStatus> {
+  try {
+    const url = API_URL ? `${API_URL}/api/warcries/sync/status` : '/api/warcries/sync/status';
+    const response = await fetch(url);
+    return await handleResponse<WarCrySyncStatus>(response);
+  } catch (error) {
+    console.error('Erro ao buscar status de sincronização:', error);
+    throw error;
+  }
+}

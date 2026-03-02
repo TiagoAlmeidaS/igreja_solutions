@@ -11,6 +11,8 @@ public class HymnsDbContext : DbContext
 
     public DbSet<Hymn> Hymns { get; set; }
     public DbSet<Verse> Verses { get; set; }
+    public DbSet<WarCry> WarCries { get; set; }
+    public DbSet<SyncLogEntry> SyncLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,24 @@ public class HymnsDbContext : DbContext
                 .WithMany(h => h.Verses)
                 .HasForeignKey(e => e.HymnId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WarCry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.FileName).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Content).IsRequired();
+            entity.Property(e => e.Theme).HasMaxLength(200);
+            entity.Property(e => e.SourcePath).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.FileHash).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.SyncStatus).HasMaxLength(20).HasDefaultValue("active");
+            
+            entity.HasIndex(e => e.MessageNumber);
+            entity.HasIndex(e => e.FileHash);
+            entity.HasIndex(e => e.SyncedAt);
+            entity.HasIndex(e => e.FileName);
+            entity.HasIndex(e => e.SyncStatus);
         });
     }
 }

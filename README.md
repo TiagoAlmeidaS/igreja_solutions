@@ -6,15 +6,22 @@ Projetos agrupados para igreja para soluções específicas e mínimas
 
 ```
 igreja_solutions/
-├── hinos_api/          # API .NET 9 para gerenciamento de hinários
-├── hinos_web/          # Frontend React para visualização de hinários
-├── hinos_mcp/          # Servidor MCP para integração com LLMs
-├── igrejaconecta/      # MicroSaaS para automação de avisos via WhatsApp
-│   ├── backend/        # FastAPI backend
-│   ├── frontend/       # React frontend
-│   └── database/       # SQL schemas
-├── docs/               # Documentação dos projetos
-└── docker-compose.yml  # Orquestração Docker dos serviços
+├── hinos_api/              # API .NET 9 para gerenciamento de hinários
+├── hinos_web/              # Frontend React para visualização de hinários
+├── hinos_mcp/              # Servidor MCP para integração com LLMs
+├── igrejaconecta/          # MicroSaaS para automação de avisos via WhatsApp
+│   ├── backend/            # FastAPI backend
+│   ├── frontend/           # React frontend
+│   └── database/           # SQL schemas
+├── central_acolhimento/    # Sistema de gestão de acolhimento (monorepo)
+│   ├── backend/            # API .NET 9 Minimal API + EF Core
+│   ├── web/                # Frontend React + Vite
+│   ├── mobile/             # App React Native + Expo
+│   ├── packages/shared/    # Tipos e utilitários compartilhados (TS)
+│   ├── database/           # Migrations e seeds SQL
+│   └── docs/               # Documentação completa do projeto
+├── docs/                   # Documentação dos projetos legados
+└── docker-compose.yml      # Orquestração Docker dos serviços
 ```
 
 ## Projetos
@@ -39,6 +46,15 @@ MicroSaaS para automação de avisos e transmissões via WhatsApp (Meta Cloud AP
 - Backend: FastAPI + PostgreSQL + Redis + Celery
 - Frontend: React + Vite
 - Status: Estrutura base criada - Em desenvolvimento
+
+### central_acolhimento
+Sistema de gestão de acolhimento para igrejas. Gerencia o cadastro e acompanhamento de pessoas acolhidas e seus cuidadores, com controle multi-tenant por igreja.
+- [Documentação completa](./central_acolhimento/README.md)
+- Backend: .NET 9 Minimal API + EF Core + PostgreSQL
+- Web: React + Vite + TypeScript
+- Mobile: React Native + Expo + TypeScript
+- Roles: Admin (global), Coordenador (por igreja), Cuidador (seus acolhidos)
+- Status: Em planejamento - Fase de documentação e arquitetura
 
 ## Executando com Docker Compose
 
@@ -119,6 +135,7 @@ A API utiliza SQLite por padrão. O banco de dados é criado automaticamente na 
 - [Frontend - hinos_web](./docs/hinos_web.md)
 - [Servidor MCP - hinos_mcp](./docs/hinos_mcp.md)
 - [IgrejaConecta - igrejaconecta](./docs/igrejaconecta.md)
+- [Central de Acolhimento](./central_acolhimento/README.md) (docs próprios dentro do monorepo)
 
 ## Desenvolvimento
 

@@ -17,6 +17,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<HinarioSqliteService>();
 builder.Services.AddScoped<HymnQueryService>();
 builder.Services.AddScoped<HymnFormatService>();
+builder.Services.AddScoped<WarCryService>();
+builder.Services.AddScoped<PdfExtractorService>();
+builder.Services.AddScoped<OneDriveSyncService>();
+builder.Services.AddHostedService<WarCrySyncBackgroundService>();
 
 var app = builder.Build();
 
@@ -30,6 +34,7 @@ await DatabaseInitializer.InitializeDatabaseAsync(app);
 // Mapear endpoints
 app.MapAuthEndpoints();
 app.MapHymnsEndpoints();
+app.MapWarCriesEndpoints();
 app.MapDevEndpoints();
 
 app.Run();

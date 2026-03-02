@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+
+<html class="light" lang="pt-BR"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Acolhidos - Gestão de Pessoas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#2563eb",
+                        "secondary": "#10b981",
+                        "background-light": "#f8fafc",
+                        "background-dark": "#0f172a",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex min-h-screen w-full flex-col max-w-md mx-auto bg-background-light dark:bg-background-dark shadow-xl overflow-hidden">
+<header class="flex items-center bg-white dark:bg-slate-900 px-4 py-4 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800">
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<h1 class="text-xl font-bold leading-tight tracking-tight flex-1 ml-2 text-slate-900 dark:text-white">Acolhidos</h1>
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</header>
+<div class="px-4 py-4 bg-white dark:bg-slate-900">
+<label class="flex flex-col w-full h-12">
+<div class="flex w-full flex-1 items-stretch rounded-xl h-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary">
+<div class="flex items-center justify-center pl-4 text-slate-400">
+<span class="material-symbols-outlined text-xl">search</span>
+</div>
+<input class="w-full min-w-0 flex-1 border-none bg-transparent focus:ring-0 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 px-3 text-base" placeholder="Buscar acolhido por nome..." value=""/>
+</div>
+</label>
+</div>
+<div class="bg-white dark:bg-slate-900 sticky top-[73px] z-10">
+<div class="flex overflow-x-auto no-scrollbar border-b border-slate-200 dark:border-slate-800 px-4 gap-6">
+<a class="flex flex-col items-center justify-center border-b-2 border-primary text-primary pb-3 pt-2 shrink-0" href="#">
+<p class="text-sm font-bold tracking-wide">Todos</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-2 shrink-0" href="#">
+<p class="text-sm font-medium tracking-wide">🌱 Novo</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-2 shrink-0" href="#">
+<p class="text-sm font-medium tracking-wide">🌿 Crescendo</p>
+</a>
+<a class="flex flex-col items-center justify-center border-b-2 border-transparent text-slate-500 dark:text-slate-400 pb-3 pt-2 shrink-0" href="#">
+<p class="text-sm font-medium tracking-wide">🌳 Firme</p>
+</a>
+</div>
+</div>
+<main class="flex-1 p-4 space-y-3">
+<div class="bg-white dark:bg-slate-900 rounded-xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14 shrink-0" data-alt="Avatar de um homem jovem sorrindo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAGNdGvSg6e8lDRgkKoVJVWMN4jMONi36HxXjD9sieI2j_CcJEn_zxDDazBAclbBwDkWpOKskvMO8KrqDHSC7Udx4FZQhENaEKmBzz7LQouhmJWPBZrgURXLknPE75OZhamhWBBtAXajKRG_pZzjdC0P6Gq1mPvcPtEfKUBhLwam46T2BKM3_Sb7yAMlPqIAT0kSF90USBlWKzKE6RR6iFxvSBeRvqzJshvXzW8o6gaTknzsdoaCGIw7WuuY9XJQqg425CDeGSZVoc");'></div>
+<div class="flex flex-col flex-1">
+<p class="text-slate-900 dark:text-white text-base font-bold leading-tight">João Silva</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium mt-1 uppercase">Centro</p>
+<div class="mt-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/20">
+                            🌱 Novo
+                        </span>
+</div>
+</div>
+<div class="shrink-0">
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">calendar_add_on</span>
+<span class="text-xs font-bold">Visita</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14 shrink-0" data-alt="Avatar de uma mulher jovem sorrindo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBViXoTzqtRGgATpUaH4ZtNvd_O4aGYJg03dLCB4yaYEti6b_t92ZpqI5aTlyWTMTbERswngo3ZWlcbvboXxhO-rpARyy2gs3pVsTl1qRHJY78hPUAsgUg7WggIFkXkde7rA2JhRK4ij994y-iBccslfyhMeyuEMMEmF_O2VYqLot7y2bj7I2fmGvfKwV_6tKeftNXchfuQLHOdWneJLJH26MQv2-MvEwb56FyFXOzID1eTBNgDHFPblATlb0ciExqPoDwiutFi0GA");'></div>
+<div class="flex flex-col flex-1">
+<p class="text-slate-900 dark:text-white text-base font-bold leading-tight">Maria Oliveira</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium mt-1 uppercase">Vila Nova</p>
+<div class="mt-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/20">
+                            🌿 Crescendo
+                        </span>
+</div>
+</div>
+<div class="shrink-0">
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">calendar_add_on</span>
+<span class="text-xs font-bold">Visita</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14 shrink-0" data-alt="Avatar de um homem adulto sorrindo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuD4K8Q5RcE4NpQciRaXkc3cESN2dSU9nfJrV_0LzGGPVOI7NvrIuYPBXOhpKICg55pVV51hoEidT9NbDq3kz37K-X3fiNSSpCVvpJfFH9nG7b0S6w71m0IrbyxRMEUUqn5-qKJQWTTbAG3P9dOm6ZRMsUHVBbkYd19vaKdOAd3WtJyYFz34WcHaw5EVr7nU9XeCg3uJgwLGl4copFnoXg3xSBYD4MjFdDzim_dou1bYvhV_HAL5L1AQ2DlgpDQ3G9Ae98R_rCESGkI");'></div>
+<div class="flex flex-col flex-1">
+<p class="text-slate-900 dark:text-white text-base font-bold leading-tight">Pedro Santos</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium mt-1 uppercase">Jardim das Flores</p>
+<div class="mt-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/20">
+                            🌳 Firme
+                        </span>
+</div>
+</div>
+<div class="shrink-0">
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">calendar_add_on</span>
+<span class="text-xs font-bold">Visita</span>
+</button>
+</div>
+</div>
+<div class="bg-white dark:bg-slate-900 rounded-xl p-4 flex items-center gap-4 shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-14 w-14 shrink-0" data-alt="Avatar de uma mulher adulta sorrindo" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCnVWNn1EpqgYrurJC4-ec4F_k9qIgLZBfDNkUDNFygG6C40qYqaEink5iuvZBMfhZG3KpkoYq_HkzNxuNVIy5yPTGNxHo5OBDLvXdb6F5tUVxvjE62pqxeKeKXNjBP9DV88X8jdgGrncttYxFRptHG6MeBbYyWZktBkq4mnjeFXeE7E8PLN0k31VOVq2fFcqDvhAjZApOUxmvZdunQ4rb78_po6V0fCgv5lJtEywequnu00HBRY5DoeBOPT-5-p2QYr7wYFyeAFcw");'></div>
+<div class="flex flex-col flex-1">
+<p class="text-slate-900 dark:text-white text-base font-bold leading-tight">Ana Luiza</p>
+<p class="text-slate-500 dark:text-slate-400 text-xs font-medium mt-1 uppercase">Bela Vista</p>
+<div class="mt-2">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-secondary/10 text-secondary border border-secondary/20">
+                            🌱 Novo
+                        </span>
+</div>
+</div>
+<div class="shrink-0">
+<button class="bg-primary/10 hover:bg-primary/20 text-primary p-2 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">calendar_add_on</span>
+<span class="text-xs font-bold">Visita</span>
+</button>
+</div>
+</div>
+</main>
+<button class="fixed bottom-24 right-6 bg-primary text-white size-14 rounded-full shadow-lg flex items-center justify-center hover:scale-105 transition-transform active:scale-95 z-20">
+<span class="material-symbols-outlined text-3xl">person_add</span>
+</button>
+<nav class="sticky bottom-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 flex justify-between items-center z-10">
+<a class="flex flex-1 flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">home</span>
+<p class="text-[10px] font-medium leading-none">Início</p>
+</a>
+<a class="flex flex-1 flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1">group</span>
+<p class="text-[10px] font-bold leading-none">Acolhidos</p>
+</a>
+<a class="flex flex-1 flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<p class="text-[10px] font-medium leading-none">Eventos</p>
+</a>
+<a class="flex flex-1 flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">groups</span>
+<p class="text-[10px] font-medium leading-none">Grupos</p>
+</a>
+<a class="flex flex-1 flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">account_circle</span>
+<p class="text-[10px] font-medium leading-none">Perfil</p>
+</a>
+</nav>
+</div>
+</body></html>

@@ -1,0 +1,5 @@
+{
+  "name": "Torre de Controle - Sistema de Acolhimento",
+  "description": "Plataforma integrada para gestão de acolhimento e jornada espiritual, com visões distintas para coordenação (Web) e voluntários (Mobile).",
+  "requestFramePermissions": []
+}

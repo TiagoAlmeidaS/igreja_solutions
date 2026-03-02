@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, MessageSquarePlus, Loader2, AlertCircle } from 'lucide-react';
+import { Search, MessageSquarePlus, Loader2, AlertCircle, Shield } from 'lucide-react';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import { Card } from './ui/card';
@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 import { CategoryFilter, Hymn } from '../types/hymn';
 import { ThemeToggle } from './ThemeToggle';
 import { useAuth } from '../contexts/AuthContext';
-import { getAllHymns, searchHymns } from '../services/api';
+import { getAllHymns, searchHymns, getAllWarCries, searchWarCries } from '../services/api';
 
 interface SearchPageProps {
   onSelectHymn: (hymnId: string) => void;
@@ -28,7 +28,8 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
     { id: 'hinario' as CategoryFilter, label: 'Hinário' },
     { id: 'canticos' as CategoryFilter, label: 'Cânticos' },
     { id: 'suplementar' as CategoryFilter, label: 'Suplementar' },
-    { id: 'novos' as CategoryFilter, label: 'Novos' }
+    { id: 'novos' as CategoryFilter, label: 'Novos' },
+    { id: 'gritos' as CategoryFilter, label: 'Gritos de Guerra', isSpecial: true }
   ];
 
   // Debounce do termo de busca
@@ -52,14 +53,17 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
         const categoryFilter = activeFilter !== 'todos' ? activeFilter : undefined;
         const searchTerm = debouncedSearchTerm.trim();
 
-        if (searchTerm && categoryFilter) {
-          // Usar getAllHymns com ambos os filtros (API suporta category + search simultaneamente)
+        if (activeFilter === 'gritos') {
+          if (searchTerm) {
+            results = await searchWarCries(searchTerm);
+          } else {
+            results = await getAllWarCries();
+          }
+        } else if (searchTerm && categoryFilter) {
           results = await getAllHymns(categoryFilter, searchTerm);
         } else if (searchTerm) {
-          // Apenas busca por termo
           results = await searchHymns(searchTerm);
         } else {
-          // Apenas filtro de categoria (ou todos)
           results = await getAllHymns(categoryFilter);
         }
 
@@ -90,6 +94,7 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
       case 'canticos': return 'bg-green-100 text-green-900 dark:bg-green-900/30 dark:text-green-300';
       case 'suplementar': return 'bg-purple-100 text-purple-900 dark:bg-purple-900/30 dark:text-purple-300';
       case 'novos': return 'bg-orange-100 text-orange-900 dark:bg-orange-900/30 dark:text-orange-300';
+      case 'gritos': return 'bg-red-100 text-red-900 dark:bg-red-900/30 dark:text-red-300';
       default: return 'bg-gray-100 text-gray-900 dark:bg-gray-800 dark:text-gray-300';
     }
   };
@@ -100,6 +105,7 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
       case 'canticos': return 'Cânticos';
       case 'suplementar': return 'Suplementar';
       case 'novos': return 'Novos';
+      case 'gritos': return 'Grito de Guerra';
       default: return category;
     }
   };
@@ -179,10 +185,15 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
               onClick={() => setActiveFilter(cat.id)}
               className={`px-4 py-2 rounded-full transition-all ${
                 activeFilter === cat.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-card text-foreground hover:bg-accent border border-border'
+                  ? cat.isSpecial 
+                    ? 'bg-red-600 text-white border-2 border-red-400'
+                    : 'bg-primary text-primary-foreground'
+                  : cat.isSpecial
+                    ? 'bg-red-50 text-red-700 hover:bg-red-100 border-2 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
+                    : 'bg-card text-foreground hover:bg-accent border border-border'
               }`}
             >
+              {cat.isSpecial && <Shield className="w-4 h-4 inline-block mr-1" />}
               {cat.label}
             </button>
           ))}
@@ -200,6 +211,7 @@ export function SearchPage({ onSelectHymn, onOpenChat }: SearchPageProps) {
               <li>• "graça" → busca em títulos e letras</li>
               <li>• "S" → mostra todos os Suplementares</li>
               <li>• "N" → mostra todos os Novos Cânticos</li>
+              <li>• "G" → mostra todos os Gritos de Guerra</li>
             </ul>
           </div>
         )}

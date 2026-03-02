@@ -2,7 +2,7 @@ export interface Hymn {
   id: string;
   number: string;
   title: string;
-  category: 'hinario' | 'canticos' | 'suplementar' | 'novos';
+  category: 'hinario' | 'canticos' | 'suplementar' | 'novos' | 'gritos';
   hymnBook: string;
   verses: Verse[];
   key?: string;
@@ -14,4 +14,4 @@ export interface Verse {
   lines: string[];
 }
 
-export type CategoryFilter = 'todos' | 'hinario' | 'canticos' | 'suplementar' | 'novos';
+export type CategoryFilter = 'todos' | 'hinario' | 'canticos' | 'suplementar' | 'novos' | 'gritos';
